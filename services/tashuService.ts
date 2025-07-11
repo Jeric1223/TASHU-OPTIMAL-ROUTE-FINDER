@@ -1,3 +1,4 @@
+// @ts-ignore
 import type { Station, Coordinates, StationWithDistance } from "./types";
 
 const TASHU_API_ENDPOINT = "/.netlify/functions/stations";

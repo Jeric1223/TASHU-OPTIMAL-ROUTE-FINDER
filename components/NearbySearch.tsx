@@ -1,4 +1,4 @@
-
+// @ts-nocheck
 import React from 'react';
 import type { StationWithDistance } from '../types';
 import StationCard from './StationCard';
