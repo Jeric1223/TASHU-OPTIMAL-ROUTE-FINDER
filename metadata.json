@@ -1,0 +1,9 @@
+{
+  "name": "타슈 최적 경로 찾기 (Tashu Optimal Route Finder)",
+  "description": "대전시 공공자전거 타슈의 최적 경로를 찾아주는 서비스입니다. 목적지 또는 현재 위치에서 가장 가까운 타슈 대여소를 검색하여 편리한 이동을 도와줍니다.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "prompt": "",
+  "kakaoRestApiKey": "YOUR_KAKAO_REST_API_KEY_HERE"
+}
