@@ -2,7 +2,7 @@
 
 const KAKAO_KEYWORD_SEARCH_API_URL = "https://dapi.kakao.com/v2/local/search/keyword.json";
 
-exports.handler = async function (event) {
+export async function handler(event) {
     // Netlify 환경 변수에서 API 키를 가져옵니다.
     const apiKey = process.env.VITE_KAKAO_API_KEY;
 
@@ -68,4 +68,4 @@ exports.handler = async function (event) {
             body: JSON.stringify({ message: "장소 검색 중 서버에서 오류가 발생했습니다." }),
         };
     }
-};
+}

@@ -2,7 +2,7 @@
 
 const TASHU_API_URL = "https://bikeapp.tashu.or.kr:50041/v1/openapi/station";
 
-exports.handler = async function (event, context) {
+export async function handler(event, context) {
     // Netlify 환경 변수에서 API 키를 가져옵니다.
     const apiKey = process.env.VITE_TASHU_API_KEY;
 
