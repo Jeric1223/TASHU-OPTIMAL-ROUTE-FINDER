@@ -1,0 +1,3 @@
+/api/*    https://bikeapp.tashu.or.kr:50041/v1/openapi/station/:splat    200
+/naver/*  https://maps.apigw.ntruss.com/map-geocode/v2/geocode/:splat    200
+/kakao/*  https://dapi.kakao.com/v2/local/search/keyword.json/:splat     200

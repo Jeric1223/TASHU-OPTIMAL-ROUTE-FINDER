@@ -99,44 +99,35 @@ const App: React.FC = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); // Run only once on initial load
 
-    const handleDestinationSearch = useCallback(
-        async (destination: string) => {
-            console.log(kakaoApiClientId);
-            if (!kakaoApiClientId) {
-                setSearchError("Naver API 및 Kakao API 키가 설정되지 않아 목적지 검색을 사용할 수 없습니다.");
-                return;
-            }
-            if (!destination) {
-                setSearchError("목적지를 입력해주세요.");
-                return;
-            }
-            setIsSearching(true);
-            setSearchError(null);
-            setDestinationResult(null);
-            setDestinationSearchResults(null);
-            setSelectedDestination(null);
-            setUserLocation(null);
+    const handleDestinationSearch = useCallback(async (destination: string) => {
+        if (!destination) {
+            setSearchError("목적지를 입력해주세요.");
+            return;
+        }
+        setIsSearching(true);
+        setSearchError(null);
+        setDestinationResult(null);
+        setDestinationSearchResults(null);
+        setSelectedDestination(null);
+        setUserLocation(null);
+        setSelectedStationOnMap(null);
 
-            try {
-                // const results = await searchLocation(destination, naverApiClientId, naverApiClientSecret);
-                const results = await searchKakaoLocation(destination, kakaoApiClientId);
-                console.log(`results: ${results}`);
-                if (results.length === 0) {
-                    setSearchError("검색 결과가 없습니다. 다른 검색어로 시도해 보세요.");
-                } else {
-                    setDestinationSearchResults(results);
-                    // Center map on the first result
-                    setMapCenter([results[0].coords.latitude, results[0].coords.longitude]);
-                    setMapZoom(15);
-                }
-            } catch (err) {
-                setSearchError(err instanceof Error ? err.message : "장소 검색에 실패했습니다.");
-            } finally {
-                setIsSearching(false);
+        try {
+            const results = await searchKakaoLocation(destination);
+            if (results.length === 0) {
+                setSearchError("검색 결과가 없습니다. 다른 검색어로 시도해 보세요.");
+            } else {
+                setDestinationSearchResults(results);
+                // Center map on the first result
+                setMapCenter([results[0].coords.latitude, results[0].coords.longitude]);
+                setMapZoom(15);
             }
-        },
-        [kakaoApiClientId]
-    );
+        } catch (err) {
+            setSearchError(err instanceof Error ? err.message : "장소 검색에 실패했습니다.");
+        } finally {
+            setIsSearching(false);
+        }
+    }, []);
 
     const handleSelectSearchResult = useCallback(
         (result: LocationSearchResult) => {
