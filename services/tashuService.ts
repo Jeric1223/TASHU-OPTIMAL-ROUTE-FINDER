@@ -1,8 +1,6 @@
 import type { Station, Coordinates, StationWithDistance } from "./types";
 
-const TASHU_API_URL = "https://bikeapp.tashu.or.kr:50041/v1/openapi/station";
-const TASHU_API_URL2 = "/api";
-const TASHU_API_KEY = import.meta.env.VITE_TASHU_API_KEY;
+const TASHU_PROXY_URL= import.meta.env.VITE_TASHU_PROXY_URL
 
 interface TashuApiResponse {
     results: Station[];
@@ -10,11 +8,8 @@ interface TashuApiResponse {
 
 export const fetchTashuStations = async (): Promise<Station[]> => {
     try {
-        const response = await fetch(TASHU_API_URL2, {
-            method: "GET",
-            headers: {
-                "api-token": TASHU_API_KEY,
-            },
+        const response = await fetch(TASHU_PROXY_URL, {
+            method: "GET"
         });
 
         if (!response.ok) {

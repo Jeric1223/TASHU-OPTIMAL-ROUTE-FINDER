@@ -13,6 +13,7 @@ export default defineConfig(({ mode }) => {
                 "@": path.resolve(__dirname, "."),
             },
         },
+        base: "/TASHU-OPTIMAL-ROUTE-FINDER/",
         server: {
             host: true,
             port: 5173,

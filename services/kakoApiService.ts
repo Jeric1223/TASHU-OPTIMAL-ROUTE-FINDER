@@ -14,7 +14,7 @@ export const searchKakaoLocation = async (query: string, apiKey: string): Promis
     }
 
     try {
-        const response = await fetch(`/kakao?query=${query}`, {
+        const response = await fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${query}`, {
             method: "GET",
             headers: {
                 Authorization: `KakaoAK ${apiKey}`,

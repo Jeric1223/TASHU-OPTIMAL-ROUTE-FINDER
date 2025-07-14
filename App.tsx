@@ -34,8 +34,6 @@ const App: React.FC = () => {
     const [mapCenter, setMapCenter] = useState<[number, number]>([36.351, 127.385]); // Daejeon City Hall approx.
     const [mapZoom, setMapZoom] = useState<number>(13);
     const [userLocation, setUserLocation] = useState<Coordinates | null>(null);
-
-    const [kakaoApiKey, setKakaoApiKey] = useState<string | null>(null);
     const [selectedStationOnMap, setSelectedStationOnMap] = useState<StationWithDistance | null>(null);
 
     const [isCentering, setIsCentering] = useState<boolean>(false);
@@ -46,24 +44,6 @@ const App: React.FC = () => {
     useEffect(() => {
         const fetchConfig = async () => {
             try {
-                const response = await fetch("/metadata.json");
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const config = await response.json();
-                const clientId = config.naverApiClientId;
-                const clientSecret = config.naverApiClientSecret;
-
-                if (
-                    clientId &&
-                    clientId !== "YOUR_NAVER_API_CLIENT_ID_HERE" &&
-                    clientSecret &&
-                    clientSecret !== "YOUR_NAVER_API_CLIENT_SECRET_HERE"
-                ) {
-                    setNaverApiClientId(clientId);
-                    setNaverApiClientSecret(clientSecret);
-                }
-
                 // Kakao API Key from .env
                 const kakaoKey = import.meta.env.VITE_KAKAO_API_KEY;
                 if (kakaoKey) {
