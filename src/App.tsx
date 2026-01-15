@@ -1,18 +1,26 @@
 import React, { useState, useCallback, useEffect } from "react";
-import type { Station, StationWithDistance, Coordinates, LocationSearchResult } from "./types";
+import type { Station, StationWithDistance, Coordinates, LocationSearchResult, OptimalRoute } from "./types/index";
 import { getCurrentLocation } from "./services/locationService";
 import { findNearestStation, findNearestAvailableStation, fetchTashuStations, haversineDistance } from "./services/tashuService";
 import { searchLocation } from "./services/naverApiService";
 import DestinationSearch from "./components/DestinationSearch";
 import NearbySearch from "./components/NearbySearch";
-import { BicycleIcon, CompassIcon, LoadingSpinner, RefreshIcon, XIcon } from "./components/icons";
+import RouteSearch from "./components/RouteSearch";
+import RouteResult from "./components/RouteResult";
+import FavoritesList from "./components/FavoritesList";
+import InstallPrompt from "./components/InstallPrompt";
+import MobileTabBar from "./components/MobileTabBar";
+import { BicycleIcon, CompassIcon, LoadingSpinner, RefreshIcon, XIcon, StarIcon } from "./components/icons";
 import TashuMap from "./components/TashuMap";
 import StationCard from "./components/StationCard";
 import { searchKakaoLocation } from "./services/kakoApiService";
+import "./styles/index.css";
 
-enum Tab {
+export enum Tab {
     Destination = "DESTINATION",
     Nearby = "NEARBY",
+    Route = "ROUTE",
+    Favorites = "FAVORITES",
 }
 
 const App: React.FC = () => {
@@ -37,28 +45,8 @@ const App: React.FC = () => {
     const [selectedStationOnMap, setSelectedStationOnMap] = useState<StationWithDistance | null>(null);
 
     const [isCentering, setIsCentering] = useState<boolean>(false);
-    const [naverApiClientId, setNaverApiClientId] = useState<string | null>(null);
-    const [naverApiClientSecret, setNaverApiClientSecret] = useState<string | null>(null);
-    const [kakaoApiClientId, setKakaoApiClientId] = useState<string | null>(null);
 
-    useEffect(() => {
-        const fetchConfig = async () => {
-            try {
-                // Kakao API Key from .env
-                const kakaoKey = import.meta.env.VITE_KAKAO_API_KEY;
-                if (kakaoKey) {
-                    setKakaoApiClientId(kakaoKey);
-                } else {
-                    console.error("Kakao API Key is not set in .env. Destination search will not work.");
-                    setSearchError("Kakao API 키가 .env에 올바르게 설정되지 않았습니다.");
-                }
-            } catch (error) {
-                console.error("Failed to load metadata.json", error);
-                setSearchError("설정 파일을 불러오는 데 실패했습니다.");
-            }
-        };
-        fetchConfig();
-    }, []);
+    const [currentRoute, setCurrentRoute] = useState<OptimalRoute | null>(null);
 
     const loadStations = useCallback(async () => {
         setIsDataLoading(true);
@@ -81,11 +69,6 @@ const App: React.FC = () => {
 
     const handleDestinationSearch = useCallback(
         async (destination: string) => {
-            console.log(kakaoApiClientId);
-            if (!kakaoApiClientId) {
-                setSearchError("Naver API 및 Kakao API 키가 설정되지 않아 목적지 검색을 사용할 수 없습니다.");
-                return;
-            }
             if (!destination) {
                 setSearchError("목적지를 입력해주세요.");
                 return;
@@ -98,8 +81,8 @@ const App: React.FC = () => {
             setUserLocation(null);
 
             try {
-                // const results = await searchLocation(destination, naverApiClientId, naverApiClientSecret);
-                const results = await searchKakaoLocation(destination, kakaoApiClientId);
+                // Netlify Function을 통해 카카오 API 호출 (API 키 보안)
+                const results = await searchKakaoLocation(destination);
                 console.log(`results: ${results}`);
                 if (results.length === 0) {
                     setSearchError("검색 결과가 없습니다. 다른 검색어로 시도해 보세요.");
@@ -115,7 +98,7 @@ const App: React.FC = () => {
                 setIsSearching(false);
             }
         },
-        [kakaoApiClientId]
+        []
     );
 
     const handleSelectSearchResult = useCallback(
@@ -196,15 +179,27 @@ const App: React.FC = () => {
         }
     }, [searchError]);
 
-    const handleTabChange = (tabId: Tab) => {
-        setActiveTab(tabId);
+    const handleTabChange = (tabId: Tab | string) => {
+        const tab = tabId as Tab;
+        setActiveTab(tab);
         setSearchError(null);
         setDestinationResult(null);
         setNearbyResult(null);
-        setUserLocation(null);
+        if (tab !== Tab.Nearby && tab !== Tab.Route) {
+            setUserLocation(null);
+        }
         setSelectedDestination(null);
         setDestinationSearchResults(null);
         setSelectedStationOnMap(null);
+        if (tab !== Tab.Route) {
+            setCurrentRoute(null);
+        }
+    };
+
+    const handleRouteFound = (route: OptimalRoute) => {
+        setCurrentRoute(route);
+        setMapCenter([route.startStation.x_pos, route.startStation.y_pos]);
+        setMapZoom(14);
     };
 
     const handleStationClick = useCallback(
@@ -236,8 +231,10 @@ const App: React.FC = () => {
     const TabButton: React.FC<{ tabId: Tab; icon: React.ReactNode; label: string }> = ({ tabId, icon, label }) => (
         <button
             onClick={() => handleTabChange(tabId)}
-            className={`flex-1 flex items-center justify-center gap-2 px-3 py-3 text-sm font-medium transition-all duration-200 ease-in-out border-b-2 ${
-                activeTab === tabId ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+            className={`flex-1 flex items-center justify-center gap-2 px-3 py-3 text-sm font-medium transition-all duration-200 ease-in-out rounded-lg ${
+                activeTab === tabId
+                    ? "neomorph-pressed text-blue-600 font-semibold"
+                    : "neomorph-btn text-gray-600 hover:text-gray-800"
             }`}
         >
             {icon}
@@ -249,42 +246,45 @@ const App: React.FC = () => {
 
     if (isDataLoading && stations.length === 0) {
         return (
-            <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center text-gray-700">
+            <div className="min-h-screen bg-neumorphic-bg flex flex-col items-center justify-center text-gray-700">
                 <LoadingSpinner />
-                <p className="mt-4 text-lg">타슈 정류장 정보를 불러오는 중...</p>
+                <p className="mt-4 text-lg font-semibold">타슈 정류장 정보를 불러오는 중...</p>
             </div>
         );
     }
 
     if (dataError) {
         return (
-            <div className="min-h-screen bg-red-50 flex flex-col items-center justify-center text-red-800 p-4 text-center">
-                <p className="text-xl font-semibold mb-4">데이터 로딩 오류</p>
-                <p className="text-red-700 mb-6">{dataError}</p>
-                <button
-                    onClick={loadStations}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors"
-                    disabled={isDataLoading}
-                >
-                    {isDataLoading ? <LoadingSpinner /> : <RefreshIcon />}
-                    재시도
-                </button>
+            <div className="min-h-screen bg-neumorphic-bg flex flex-col items-center justify-center text-red-700 p-4 text-center">
+                <div className="neomorph-card p-8 max-w-md">
+                    <p className="text-xl font-bold mb-4 text-red-700">데이터 로딩 오류</p>
+                    <p className="text-red-600 mb-6">{dataError}</p>
+                    <button
+                        onClick={loadStations}
+                        className="neomorph-btn-primary font-bold py-2 px-4 flex items-center gap-2 transition-colors w-full justify-center"
+                        disabled={isDataLoading}
+                    >
+                        {isDataLoading ? <LoadingSpinner /> : <RefreshIcon />}
+                        재시도
+                    </button>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-100 font-sans">
-            <header className="bg-white p-4 shadow-sm sticky top-0 z-10">
+        <div className="min-h-screen bg-neumorphic-bg font-sans">
+            <header className="neomorph-card p-4 sticky top-0 z-10 mb-4 md:mb-6 rounded-b-2xl">
                 <div className="max-w-4xl mx-auto flex items-center justify-between">
                     <div className="flex items-center gap-2">
+                        <BicycleIcon className="w-6 h-6 md:w-8 md:h-8 text-blue-600" />
                         <h1 className="text-xl md:text-2xl font-bold text-blue-600">TASHU</h1>
-                        <span className="hidden sm:inline text-gray-400 font-light">| 최적 경로 찾기</span>
+                        <span className="hidden sm:inline text-gray-600 font-light">| 최적 경로 찾기</span>
                     </div>
                     <button
                         onClick={loadStations}
                         disabled={isDataLoading}
-                        className="text-gray-500 hover:text-blue-600 transition-colors disabled:text-gray-300 disabled:cursor-wait p-2 rounded-full hover:bg-gray-100"
+                        className="neomorph-btn p-2 rounded-full text-gray-600 hover:text-blue-600 disabled:opacity-50 disabled:cursor-wait"
                         aria-label="새로고침"
                     >
                         <RefreshIcon className={isDataLoading ? "animate-spin" : ""} />
@@ -292,14 +292,16 @@ const App: React.FC = () => {
                 </div>
             </header>
 
-            <main className="p-4 md:p-6 max-w-4xl mx-auto space-y-4 md:space-y-6">
-                <div className="bg-white rounded-xl shadow-md overflow-hidden">
-                    <div className="flex">
+            <main className="p-4 md:p-6 max-w-4xl mx-auto space-y-4 md:space-y-6 pb-24 md:pb-6">
+                <div className="neomorph-card rounded-2xl overflow-hidden">
+                    <div className="hidden md:flex gap-2 p-4 border-b border-neumorphic-dark border-opacity-20 overflow-x-auto">
                         <TabButton tabId={Tab.Nearby} icon={<BicycleIcon />} label="내 주변" />
                         <TabButton tabId={Tab.Destination} icon={<CompassIcon />} label="목적지" />
+                        <TabButton tabId={Tab.Route} icon={<CompassIcon />} label="경로" />
+                        <TabButton tabId={Tab.Favorites} icon={<StarIcon />} label="즐겨찾기" />
                     </div>
 
-                    <div className="p-4 md:p-6">
+                    <div className="p-4 md:p-6 space-y-4">
                         <TashuMap
                             stations={stations}
                             center={mapCenter}
@@ -311,6 +313,7 @@ const App: React.FC = () => {
                             clickedStationId={selectedStationOnMap?.id}
                             onGoToUserLocation={handleGoToUserLocation}
                             isCentering={isCentering}
+                            route={currentRoute}
                         />
 
                         {activeTab === Tab.Destination && (
@@ -328,6 +331,25 @@ const App: React.FC = () => {
                         {activeTab === Tab.Nearby && (
                             <NearbySearch onSearch={handleNearbySearch} result={nearbyResult} loading={isSearching} error={searchError} />
                         )}
+
+                        {activeTab === Tab.Route && (
+                            <>
+                                {!currentRoute ? (
+                                    <RouteSearch
+                                        stations={stations}
+                                        onRouteFound={handleRouteFound}
+                                        onError={(error) => setSearchError(error)}
+                                    />
+                                ) : (
+                                    <RouteResult
+                                        route={currentRoute}
+                                        onClose={() => setCurrentRoute(null)}
+                                    />
+                                )}
+                            </>
+                        )}
+
+                        {activeTab === Tab.Favorites && <FavoritesList />}
 
                         {selectedStationOnMap && !searchResult && (
                             <div className="mt-6 animate-fade-in">
@@ -348,10 +370,13 @@ const App: React.FC = () => {
                 </div>
             </main>
 
-            <footer className="text-center p-4 mt-8 text-gray-500 text-xs">
+            <footer className="hidden md:block text-center p-4 mt-8 text-gray-500 text-xs">
                 <p>본 서비스는 대전시 공공자전거 '타슈'의 실시간 데이터를 모의하여 사용합니다.</p>
                 <p>&copy; {new Date().getFullYear()} Tashu Route Finder. All Rights Reserved.</p>
             </footer>
+
+            <InstallPrompt />
+            <MobileTabBar activeTab={activeTab} onTabChange={handleTabChange} />
         </div>
     );
 };

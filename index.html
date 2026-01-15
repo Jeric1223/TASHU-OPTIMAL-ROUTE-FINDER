@@ -2,97 +2,87 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>타슈 최적 경로 찾기</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#2563eb" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <!-- SEO -->
+    <title>타슈 최적 경로 찾기 | 대전 공공자전거</title>
+    <meta name="description" content="대전시 공공자전거 타슈의 가장 가까운 정류소를 찾고, 최적 경로를 안내받으세요. PWA 앱으로 홈화면에 추가 가능." />
+    <meta name="keywords" content="타슈, TASHU, 대전, 공공자전거, 자전거 대여, 경로 찾기" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="타슈 최적 경로 찾기" />
+    <meta property="og:description" content="대전시 공공자전거 타슈의 최적 경로를 찾아보세요" />
+    <meta property="og:image" content="/icons/icon-512x512.png" />
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Noto Sans KR', 'sans-serif'],
-            },
-            keyframes: {
-              'fade-in': {
-                '0%': { opacity: '0', transform: 'translateY(-10px)' },
-                '100%': { opacity: '1', transform: 'translateY(0)' },
-              },
-              'ping': {
-                '75%, 100%': {
-                  transform: 'scale(1.5)',
-                  opacity: '0'
-                }
-              }
-            },
-            animation: {
-              'fade-in': 'fade-in 0.5s ease-out forwards',
-              'ping': 'ping 1s cubic-bezier(0, 0, 0.2, 1) infinite',
-            }
-          },
-        },
+
+    <!-- Custom Styles -->
+    <style>
+      /* Fix for leaflet + tailwind conflict */
+      .leaflet-container {
+        height: 300px; /* Default height for mobile */
+        width: 100%;
+        border-radius: 0.75rem; /* 12px */
       }
-    </script>
-  <script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@^18.2.0",
-    "react/": "https://esm.sh/react@^18.2.0/",
-    "react-dom/": "https://esm.sh/react-dom@^18.2.0/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.9.0",
-    "leaflet": "https://esm.sh/leaflet@1.9.4",
-    "react-leaflet": "https://esm.sh/react-leaflet@4.2.1"
-  }
-}
-</script>
-<style>
-  /* Fix for leaflet + tailwind conflict */
-  .leaflet-container {
-    height: 300px; /* Default height for mobile */
-    width: 100%;
-    border-radius: 0.75rem; /* 12px */
-  }
 
-  @media (min-width: 768px) { /* md breakpoint */
-    .leaflet-container {
-        height: 450px;
-    }
-  }
+      @media (min-width: 768px) { /* md breakpoint */
+        .leaflet-container {
+            height: 450px;
+        }
+      }
 
-  .leaflet-popup-content-wrapper {
-      background: #ffffff;
-      color: #374151; /* text-gray-700 */
-      border-radius: 0.5rem;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.1);
-  }
-  .leaflet-popup-content {
-      margin: 1rem;
-      font-family: 'Noto Sans KR', sans-serif;
-      min-width: 220px;
-  }
-  .leaflet-popup-tip {
-      background: #ffffff;
-  }
-  .leaflet-popup-close-button {
-      color: #6b7280 !important; /* gray-500 */
-      padding: 4px;
-      border-radius: 9999px;
-  }
-   .leaflet-popup-close-button:hover {
-      background-color: #f3f4f6; /* gray-100 */
-   }
-  .leaflet-div-icon {
-    background: transparent;
-    border: none;
-  }
-</style>
-<link rel="stylesheet" href="/index.css">
-</head>
-  <body class="bg-gray-100 text-gray-800">
+      .leaflet-popup-content-wrapper {
+          background: #e0e5ec;
+          color: #1f2937;
+          border-radius: 1rem;
+          box-shadow: 8px 8px 16px #a3b1c6, -8px -8px 16px #ffffff;
+      }
+      .leaflet-popup-content {
+          margin: 1rem;
+          font-family: 'Noto Sans KR', sans-serif;
+          min-width: 220px;
+      }
+      .leaflet-popup-tip {
+          background: #e0e5ec;
+      }
+      .leaflet-popup-close-button {
+          color: #6b7280 !important;
+          padding: 4px;
+          border-radius: 9999px;
+      }
+      .leaflet-popup-close-button:hover {
+          background-color: #d4d9e3;
+      }
+      .leaflet-div-icon {
+        background: transparent;
+        border: none;
+      }
+
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+
+      #root {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+      }
+    </style>
+  </head>
+  <body>
     <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

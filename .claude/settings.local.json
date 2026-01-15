@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)",
+      "Bash(timeout 15 npm run dev:*)",
+      "Bash(npm run dev:*)",
+      "Bash(open -a \"Google Chrome\" \"http://localhost:5173/\")",
+      "Bash(netlify dev)",
+      "Bash(pkill:*)",
+      "Bash(open -a \"Google Chrome\" \"http://localhost:8888/\")",
+      "Bash(curl:*)",
+      "Bash(ls:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)"
+    ]
+  }
+}

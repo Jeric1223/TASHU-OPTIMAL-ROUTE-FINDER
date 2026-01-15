@@ -66,3 +66,33 @@ export interface GeocodingResponse {
     addresses: GeocodingAddress[];
     errorMessage?: string;
 }
+
+// Route guidance types
+export interface RouteLocation {
+    type: 'start' | 'destination';
+    name: string;
+    coords: Coordinates;
+}
+
+export interface RouteSegment {
+    type: 'walk' | 'bike';
+    distance: number; // km
+    duration: number; // minutes
+    polyline?: [number, number][]; // coordinates for map visualization
+    startPoint: Station | RouteLocation;
+    endPoint: Station | RouteLocation;
+}
+
+export interface OptimalRoute {
+    segments: RouteSegment[];
+    totalDistance: number; // km
+    totalDuration: number; // minutes
+    startStation: StationWithDistance;
+    endStation: StationWithDistance;
+}
+
+// Favorites types
+export interface FavoriteStation extends Station {
+    savedAt: string;
+    nickname?: string;
+}

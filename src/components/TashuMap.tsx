@@ -1,8 +1,8 @@
 
 import React, { useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from 'react-leaflet';
 import L from 'leaflet';
-import type { Station, StationWithDistance, Coordinates } from '../types';
+import type { Station, StationWithDistance, Coordinates, OptimalRoute } from '../types';
 import { MyLocationIcon, LoadingSpinner } from './icons';
 
 interface TashuMapProps {
@@ -16,6 +16,7 @@ interface TashuMapProps {
   onStationClick: (station: Station) => void;
   onGoToUserLocation: () => Promise<void>;
   isCentering: boolean;
+  route?: OptimalRoute | null;
 }
 
 const ChangeView: React.FC<{ center: [number, number]; zoom: number }> = ({ center, zoom }) => {
@@ -67,7 +68,7 @@ const destinationIcon = L.divIcon({
 });
 
 
-const TashuMap: React.FC<TashuMapProps> = ({ stations, center, zoom, userLocation, searchResult, selectedDestination, clickedStationId, onStationClick, onGoToUserLocation, isCentering }) => {
+const TashuMap: React.FC<TashuMapProps> = ({ stations, center, zoom, userLocation, searchResult, selectedDestination, clickedStationId, onStationClick, onGoToUserLocation, isCentering, route }) => {
   return (
     <div className="relative mb-4 rounded-xl overflow-hidden shadow-lg border border-gray-200">
       <MapContainer center={center} zoom={zoom} scrollWheelZoom={true} className="leaflet-container">
@@ -76,6 +77,33 @@ const TashuMap: React.FC<TashuMapProps> = ({ stations, center, zoom, userLocatio
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
           url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
         />
+
+        {/* Route visualization */}
+        {route && route.segments.map((segment, idx) => {
+          const startCoords = 'x_pos' in segment.startPoint ?
+            [segment.startPoint.x_pos, segment.startPoint.y_pos] as [number, number] :
+            [segment.startPoint.coords.latitude, segment.startPoint.coords.longitude] as [number, number];
+
+          const endCoords = 'x_pos' in segment.endPoint ?
+            [segment.endPoint.x_pos, segment.endPoint.y_pos] as [number, number] :
+            [segment.endPoint.coords.latitude, segment.endPoint.coords.longitude] as [number, number];
+
+          const isWalk = segment.type === 'walk';
+          const color = isWalk ? '#6B7280' : '#2563EB';
+          const weight = isWalk ? 3 : 5;
+          const dashArray = isWalk ? '5, 10' : undefined;
+
+          return (
+            <Polyline
+              key={`route-segment-${idx}`}
+              positions={[startCoords, endCoords]}
+              color={color}
+              weight={weight}
+              dashArray={dashArray}
+              opacity={0.8}
+            />
+          );
+        })}
         
         {userLocation && (
             <Marker position={[userLocation.latitude, userLocation.longitude]} icon={userLocationIcon}>

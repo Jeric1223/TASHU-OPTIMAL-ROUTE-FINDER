@@ -1,38 +1,67 @@
-import type { Station, Coordinates, StationWithDistance } from "./types";
+import type { Station, Coordinates, StationWithDistance } from "../types/index";
 
-const TASHU_PROXY_URL= import.meta.env.VITE_TASHU_PROXY_URL
-
-interface TashuApiResponse {
-    results: Station[];
-}
-
+/**
+ * Fetches TASHU stations via Vite proxy (dev) or Netlify function (prod)
+ */
 export const fetchTashuStations = async (): Promise<Station[]> => {
     try {
-        const response = await fetch(TASHU_PROXY_URL, {
-            method: "GET"
-        });
+        // @ts-ignore - Vite 환경변수
+        const apiKey = import.meta.env?.VITE_TASHU_API_KEY as string;
+        // @ts-ignore - Vite 환경변수
+        const isDev = import.meta.env?.DEV;
+
+        let response: Response;
+
+        if (isDev) {
+            // 개발 환경: Vite 프록시 사용
+            response = await fetch("/api/tashu/station", {
+                method: "GET",
+                headers: {
+                    "api-token": apiKey || "l1zts202dh534137"
+                }
+            });
+        } else {
+            // 프로덕션: Netlify 함수 사용
+            response = await fetch("/.netlify/functions/tashu-stations", {
+                method: "GET"
+            });
+        }
 
         if (!response.ok) {
-            // API 서버 자체에서 보낸 에러 메시지를 포함하여 더 명확한 오류를 제공합니다.
             const errorText = await response.text();
             throw new Error(
-                `API 요청 실패 (HTTP ${response.status}). 원인: ${errorText}. CORS 프록시 서버 또는 타슈 API 서버에 일시적인 문제가 있을 수 있습니다.`
+                `API 요청 실패 (HTTP ${response.status}). 원인: ${errorText}.`
             );
         }
 
-        const data: TashuApiResponse = await response.json();
+        const data = await response.json();
 
-        if (!data.results || !Array.isArray(data.results)) {
-            throw new Error('API 응답 형식이 올바르지 않습니다. "results" 배열이 없습니다.');
+        // 응답 형식 처리: results (타슈 API) 또는 station (Netlify 함수)
+        let rawStations: any[];
+        if (data.results && Array.isArray(data.results)) {
+            rawStations = data.results;
+        } else if (data.station && Array.isArray(data.station)) {
+            rawStations = data.station;
+        } else {
+            throw new Error('API 응답 형식이 올바르지 않습니다.');
         }
 
-        return data.results;
+        // 좌표를 숫자로 변환
+        const stations: Station[] = rawStations.map((item: any) => ({
+            id: item.id,
+            name: item.name,
+            x_pos: parseFloat(item.x_pos),
+            y_pos: parseFloat(item.y_pos),
+            address: item.address,
+            parking_count: item.parking_count
+        }));
+
+        return stations;
     } catch (error) {
         console.error("Error fetching Tashu stations:", error);
         if (error instanceof TypeError && error.message.includes("Failed to fetch")) {
-            throw new Error("네트워크 오류가 발생했습니다. 인터넷 연결을 확인하거나, 현재 사용 중인 CORS 프록시 서버가 응답하지 않는 것 같습니다.");
+            throw new Error("네트워크 오류가 발생했습니다. 인터넷 연결을 확인하거나 잠시 후 다시 시도해주세요.");
         }
-        // 이미 생성된 커스텀 오류 메시지를 그대로 다시 던집니다.
         throw error;
     }
 };

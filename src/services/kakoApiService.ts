@@ -1,25 +1,38 @@
-import type { KakaoSearchResult, KakaoKeywordSearchResponse, KakaoDocument } from "../types";
+import type { KakaoSearchResult, KakaoKeywordSearchResponse, KakaoDocument } from "../types/index";
 
 /**
- * Searches for a location using Kakao's Keyword Search API via a CORS proxy.
- * NOTE: For production use, these API calls should be made from a backend proxy
- * to protect the API Key. Exposing the key in the frontend is a security risk.
+ * Searches for a location using Kakao's Keyword Search API.
+ * Uses Vite proxy in dev, Netlify Function in production.
  * @param query - The search query (address or place name).
- * @param apiKey - The Kakao REST API Key.
  * @returns A promise that resolves to an array of search results.
  */
-export const searchKakaoLocation = async (query: string, apiKey: string): Promise<KakaoSearchResult[]> => {
+export const searchKakaoLocation = async (query: string): Promise<KakaoSearchResult[]> => {
     if (!query) {
         return [];
     }
 
     try {
-        const response = await fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${query}`, {
-            method: "GET",
-            headers: {
-                Authorization: `KakaoAK ${apiKey}`,
-            },
-        });
+        // @ts-ignore - Vite 환경변수
+        const isDev = import.meta.env?.DEV;
+        // @ts-ignore - Vite 환경변수
+        const kakaoApiKey = import.meta.env?.VITE_KAKAO_API_KEY as string;
+
+        let response: Response;
+
+        if (isDev) {
+            // 개발 환경: Vite 프록시 사용
+            response = await fetch(`/api/kakao/v2/local/search/keyword.json?query=${encodeURIComponent(query)}`, {
+                method: "GET",
+                headers: {
+                    "Authorization": `KakaoAK ${kakaoApiKey}`
+                }
+            });
+        } else {
+            // 프로덕션: Netlify 함수 사용
+            response = await fetch(`/.netlify/functions/kakao-search?query=${encodeURIComponent(query)}`, {
+                method: "GET",
+            });
+        }
 
         if (!response.ok) {
             const errorText = await response.text();
