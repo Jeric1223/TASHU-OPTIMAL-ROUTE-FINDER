@@ -48,5 +48,3 @@
 ```
 
 
-https://github.com/user-attachments/assets/487fe9cd-79d9-48dd-b36a-1436a89a9a1b
-
