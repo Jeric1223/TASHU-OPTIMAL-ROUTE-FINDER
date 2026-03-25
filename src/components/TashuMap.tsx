@@ -28,25 +28,32 @@ const ChangeView: React.FC<{ center: [number, number]; zoom: number }> = ({ cent
 };
 
 const createStationIcon = (count: number, isHighlighted: boolean) => {
-  const primaryColor = count > 0 ? '#006a3c' : '#abadb0'; // green or gray
-  const highlightColor = '#77f8ab'; // primary-container
-  
+  const primaryColor = count > 0 ? '#0A5C36' : '#abadb0'; // Tashu green or gray
+
   const svg = `
-    <svg width="40" height="48" viewBox="0 0 40 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));">
-      ${isHighlighted ? `<path d="M20 48L10 28C10 15.3333 13.3333 10 20 10C26.6667 10 30 15.3333 30 28L20 48Z" fill="${highlightColor}"/>` : ''}
-      <path d="M20 44L12 27.2C12 15.6 15.1333 11 20 11C24.8667 11 28 15.6 28 27.2L20 44Z" fill="${primaryColor}"/>
-      <circle cx="20" cy="20" r="14" fill="white"/>
-      <circle cx="20" cy="20" r="12" fill="${primaryColor}"/>
-      <text x="20" y="25" font-family="sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">${count}</text>
+    <svg width="80" height="80" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 4px 8px rgba(0,0,0,0.12));">
+      <!-- 녹색 원형 배경 -->
+      <circle cx="45" cy="65" r="35" fill="${primaryColor}"/>
+
+      <!-- 자전거 아이콘 (흰색) -->
+      <g transform="translate(27, 47) scale(1.5)" fill="white">
+        <path d="M15.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM5 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5zm5.8-10l2.4-2.4.8.8c1.3 1.3 3 2.1 5.1 2.1V9c-1.5 0-2.7-.6-3.6-1.5l-1.9-1.9c-.5-.4-1-.6-1.6-.6s-1.1.2-1.4.6L7.8 8.4c-.4.4-.6.9-.6 1.4 0 .6.2 1.1.6 1.4L11 14v5h2v-6.2l-2.2-2.3zM19 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5z"/>
+      </g>
+
+      <!-- 숫자 배경 (흰색 라운드 박스) -->
+      <rect x="58" y="20" width="40" height="28" rx="14" fill="white" stroke="${primaryColor}" stroke-width="2"/>
+
+      <!-- 숫자 표시 -->
+      <text x="78" y="34" fill="${primaryColor}" font-family="Arial, sans-serif" font-weight="900" font-size="16" text-anchor="middle" dominant-baseline="central">${count}</text>
     </svg>
   `;
-  
+
   return L.divIcon({
     html: svg,
     className: 'leaflet-div-icon',
-    iconSize: [40, 48],
-    iconAnchor: [20, 48],
-    popupAnchor: [0, -48],
+    iconSize: [80, 80],
+    iconAnchor: [40, 65],
+    popupAnchor: [0, -65],
   });
 };
 
