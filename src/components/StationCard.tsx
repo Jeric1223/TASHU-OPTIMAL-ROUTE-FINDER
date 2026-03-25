@@ -125,21 +125,6 @@ const StationCard: React.FC<StationCardProps> = ({ station, compact = false }) =
                 </a>
             </div>
 
-            {/* 메인 CTA */}
-            <a
-                href={kakaoToUrl(station.name, station.x_pos, station.y_pos)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full bg-gradient-to-br from-primary to-primary-dim text-white rounded-xl py-4 px-5 flex items-center justify-between group breathe-shadow active:scale-[0.98] transition-all"
-            >
-                <div className="flex items-center gap-3">
-                    <span className="material-symbols-outlined text-2xl">directions</span>
-                    <span className="font-headline text-base font-extrabold tracking-tight">카카오맵으로 길찾기</span>
-                </div>
-                <div className="bg-white/20 p-1.5 rounded-full group-hover:translate-x-1 transition-transform">
-                    <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                </div>
-            </a>
         </div>
     );
 };
