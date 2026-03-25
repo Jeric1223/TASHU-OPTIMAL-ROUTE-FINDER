@@ -172,7 +172,7 @@ MIT License - 자유롭게 사용, 수정, 배포 가능
 ## 📞 문의 & 피드백
 
 - **Issues**: [GitHub Issues](https://github.com/kimjaehyeon/TASHU-OPTIMAL-ROUTE-FINDER/issues)
-- **Email**: kim.jaehyeon@example.com
+- **Email**: soehd0889@gmail.com
 
 ---
 
