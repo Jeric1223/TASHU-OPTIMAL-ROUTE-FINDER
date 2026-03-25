@@ -40,36 +40,94 @@ interface StationsClusterProps {
 const StationsCluster: React.FC<StationsClusterProps> = ({ stations, searchResult, clickedStationId, onStationClick }) => {
   const map = useMap();
   const clusterGroupRef = React.useRef<any>(null);
+  const markersRef = React.useRef<Map<string, any>>(new Map());
+
+  // 클러스터 아이콘 생성 함수
+  const createClusterIcon = (cluster: any) => {
+    const childCount = cluster.getChildCount();
+    let clusterColor = '#006a3c'; // 타슈 초록색
+    let opacity = 1;
+
+    // 개수에 따라 색상 농도 조정
+    if (childCount < 10) {
+      opacity = 0.4 + (childCount / 10) * 0.6;
+    } else if (childCount < 50) {
+      opacity = 0.7 + ((childCount - 10) / 40) * 0.3;
+    } else {
+      opacity = 1;
+    }
+
+    const html = `
+      <div style="
+        background-color: rgba(0, 106, 60, ${opacity});
+        color: white;
+        border-radius: 50%;
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 14px;
+        border: 2px solid white;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      ">${childCount}</div>
+    `;
+
+    return L.divIcon({
+      html,
+      className: 'leaflet-cluster-icon',
+      iconSize: [44, 44],
+      iconAnchor: [22, 22],
+    });
+  };
 
   useEffect(() => {
     if (!clusterGroupRef.current) {
-      clusterGroupRef.current = L.markerClusterGroup();
+      clusterGroupRef.current = L.markerClusterGroup({
+        iconCreateFunction: createClusterIcon,
+        maxClusterRadius: 80,
+      });
       map.addLayer(clusterGroupRef.current);
     }
 
-    clusterGroupRef.current.clearLayers();
+    // 변경된 마커만 업데이트
+    const newMarkerIds = new Set(stations.map(s => s.id));
 
-    stations.forEach(station => {
-      const icon = createStationIcon(station.parking_count, station.id === searchResult?.id || station.id === clickedStationId);
-      const marker = L.marker([station.x_pos, station.y_pos], { icon });
-      marker.bindPopup(`
-        <div class="space-y-1">
-          <div class="text-base font-bold text-gray-800">${station.name}</div>
-          <div class="text-sm text-gray-500">${station.address}</div>
-          <div class="text-sm pt-1 mt-1 border-t border-gray-200">
-            대여 가능: <span class="font-bold text-blue-600 text-base">${station.parking_count}</span> 대
-          </div>
-        </div>
-      `);
-      marker.on('click', () => onStationClick(station));
-      clusterGroupRef.current.addLayer(marker);
+    // 제거된 마커 삭제
+    markersRef.current.forEach((marker, id) => {
+      if (!newMarkerIds.has(id)) {
+        clusterGroupRef.current.removeLayer(marker);
+        markersRef.current.delete(id);
+      }
     });
 
-    return () => {
-      if (clusterGroupRef.current) {
-        map.removeLayer(clusterGroupRef.current);
+    // 새 마커 추가 또는 기존 마커 업데이트
+    stations.forEach(station => {
+      const isHighlighted = station.id === searchResult?.id || station.id === clickedStationId;
+      const icon = createStationIcon(station.parking_count, isHighlighted);
+
+      if (markersRef.current.has(station.id)) {
+        // 이미 존재하는 마커 업데이트
+        const existingMarker = markersRef.current.get(station.id);
+        existingMarker.setIcon(icon);
+      } else {
+        // 새 마커 생성
+        const marker = L.marker([station.x_pos, station.y_pos], { icon });
+        marker.bindPopup(`
+          <div class="space-y-1">
+            <div class="text-base font-bold text-gray-800">${station.name}</div>
+            <div class="text-sm text-gray-500">${station.address}</div>
+            <div class="text-sm pt-1 mt-1 border-t border-gray-200">
+              대여 가능: <span class="font-bold text-blue-600 text-base">${station.parking_count}</span> 대
+            </div>
+          </div>
+        `);
+        marker.on('click', () => onStationClick(station));
+        clusterGroupRef.current.addLayer(marker);
+        markersRef.current.set(station.id, marker);
       }
-    };
+    });
   }, [stations, searchResult, clickedStationId, map, onStationClick]);
 
   return null;
