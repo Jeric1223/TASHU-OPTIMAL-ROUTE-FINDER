@@ -2,6 +2,9 @@
 import React, { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from 'react-leaflet';
 import L from 'leaflet';
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
+import 'leaflet.markercluster';
 import type { Station, StationWithDistance, Coordinates, OptimalRoute } from '../types';
 import { MyLocationIcon, LoadingSpinner } from './icons';
 
@@ -24,6 +27,51 @@ const ChangeView: React.FC<{ center: [number, number]; zoom: number }> = ({ cent
   useEffect(() => {
     map.setView(center, zoom, { animate: true, duration: 1 });
   }, [center, zoom, map]);
+  return null;
+};
+
+interface StationsClusterProps {
+  stations: Station[];
+  searchResult?: StationWithDistance | null;
+  clickedStationId?: string | null;
+  onStationClick: (station: Station) => void;
+}
+
+const StationsCluster: React.FC<StationsClusterProps> = ({ stations, searchResult, clickedStationId, onStationClick }) => {
+  const map = useMap();
+  const clusterGroupRef = React.useRef<any>(null);
+
+  useEffect(() => {
+    if (!clusterGroupRef.current) {
+      clusterGroupRef.current = L.markerClusterGroup();
+      map.addLayer(clusterGroupRef.current);
+    }
+
+    clusterGroupRef.current.clearLayers();
+
+    stations.forEach(station => {
+      const icon = createStationIcon(station.parking_count, station.id === searchResult?.id || station.id === clickedStationId);
+      const marker = L.marker([station.x_pos, station.y_pos], { icon });
+      marker.bindPopup(`
+        <div class="space-y-1">
+          <div class="text-base font-bold text-gray-800">${station.name}</div>
+          <div class="text-sm text-gray-500">${station.address}</div>
+          <div class="text-sm pt-1 mt-1 border-t border-gray-200">
+            대여 가능: <span class="font-bold text-blue-600 text-base">${station.parking_count}</span> 대
+          </div>
+        </div>
+      `);
+      marker.on('click', () => onStationClick(station));
+      clusterGroupRef.current.addLayer(marker);
+    });
+
+    return () => {
+      if (clusterGroupRef.current) {
+        map.removeLayer(clusterGroupRef.current);
+      }
+    };
+  }, [stations, searchResult, clickedStationId, map, onStationClick]);
+
   return null;
 };
 
@@ -124,28 +172,12 @@ const TashuMap: React.FC<TashuMapProps> = ({ stations, center, zoom, userLocatio
             </Marker>
         )}
 
-        {stations.map(station => (
-          <Marker
-            key={station.id}
-            position={[station.x_pos, station.y_pos]}
-            icon={createStationIcon(station.parking_count, station.id === searchResult?.id || station.id === clickedStationId)}
-            eventHandlers={{
-              click: () => {
-                onStationClick(station);
-              },
-            }}
-          >
-            <Popup>
-              <div className="space-y-1">
-                <div className="text-base font-bold text-gray-800">{station.name}</div>
-                <div className="text-sm text-gray-500">{station.address}</div>
-                <div className="text-sm pt-1 mt-1 border-t border-gray-200">
-                  대여 가능: <span className="font-bold text-blue-600 text-base">{station.parking_count}</span> 대
-                </div>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+        <StationsCluster
+          stations={stations}
+          searchResult={searchResult}
+          clickedStationId={clickedStationId}
+          onStationClick={onStationClick}
+        />
       </MapContainer>
     </div>
   );
