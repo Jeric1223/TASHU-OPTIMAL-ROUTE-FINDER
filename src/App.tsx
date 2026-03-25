@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from "react";
-import type { Station, StationWithDistance, Coordinates, LocationSearchResult, OptimalRoute } from "./types/index";
+import type { Station, StationWithDistance, Coordinates, LocationSearchResult, OptimalRoute, FavoriteStation } from "./types/index";
 import { getCurrentLocation } from "./services/locationService";
 import { findNearestStation, findNearestAvailableStation, fetchTashuStations, haversineDistance } from "./services/tashuService";
 import DestinationSearch from "./components/DestinationSearch";
@@ -90,6 +90,16 @@ const App: React.FC = () => {
         loadStations();
         handleNearbySearch();
         // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    const handleStationSelect = useCallback((station: FavoriteStation) => {
+        const stationWithDistance: StationWithDistance = {
+            ...station,
+            distance: station.distance || 0,
+        };
+        setSelectedStationOnMap(stationWithDistance);
+        setMapCenter([station.x_pos, station.y_pos]);
+        setMapZoom(16);
     }, []);
 
     const handleDestinationSearch = useCallback(async (destination: string) => {
@@ -397,6 +407,7 @@ const App: React.FC = () => {
                     onBack={() => setActiveTab(Tab.Nearby)}
                     onNavigateToMap={() => setActiveTab(Tab.Nearby)}
                     onNavigateToRoute={() => setActiveTab(Tab.Route)}
+                    onStationSelect={handleStationSelect}
                 />
             )}
 
