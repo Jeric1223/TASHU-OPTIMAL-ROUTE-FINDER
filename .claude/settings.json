@@ -2,7 +2,13 @@
   "permissions": {
     "allow": [
       "mcp__stitch__get_screen",
-      "Read(//private/tmp/**)"
+      "Read(//private/tmp/**)",
+      "Bash(grep -h from.*services src/**/*.tsx)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"refactor: 사용하지 않는 서비스 파일 제거:*)"
+    ],
+    "additionalDirectories": [
+      "/tmp"
     ]
   }
 }
