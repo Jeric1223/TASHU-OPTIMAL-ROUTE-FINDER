@@ -318,6 +318,7 @@ const App: React.FC = () => {
                         compact
                         onSetAsStart={handleSetRouteStart}
                         onSetAsEnd={handleSetRouteEnd}
+                        onCardClick={() => setSelectedStationOnMap(nearbyResult!)}
                     />
                 </div>
             )}
@@ -345,6 +346,7 @@ const App: React.FC = () => {
                             station={selectedStationOnMap!}
                             onSetAsStart={handleSetRouteStart}
                             onSetAsEnd={handleSetRouteEnd}
+                            onCardClick={() => setSelectedStationOnMap(null)}
                         />
                     </div>
                 </div>
