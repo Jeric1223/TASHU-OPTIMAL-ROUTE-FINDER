@@ -1,26 +1,68 @@
-name: Test TASHU API Access
+name: Update TASHU Data & Deploy
 
 on:
+  schedule:
+    - cron: '*/5 * * * *' # 5분마다 실행
   workflow_dispatch: # 수동 실행
 
+permissions:
+  contents: write
+  pages: write
+
 jobs:
-  test-api:
+  update-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Test TASHU API call
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Fetch TASHU station data
         env:
           API_TOKEN: ${{ secrets.TASHU_API_KEY }}
         run: |
-          echo "Testing TASHU API from GitHub Actions..."
+          mkdir -p public/data
           HTTP_STATUS=$(curl -s -o response.json -w "%{http_code}" \
             -H "api-token: $API_TOKEN" \
             "https://bikeapp.tashu.or.kr:50041/v1/openapi/station")
           echo "HTTP Status: $HTTP_STATUS"
           if [ "$HTTP_STATUS" = "200" ]; then
-            echo "API call successful!"
-            echo "First 500 chars of response:"
-            head -c 500 response.json
+            # results 배열만 추출하여 저장
+            node -e "
+              const data = require('./response.json');
+              const stations = (data.results || []).map(s => ({
+                id: s.id,
+                name: s.name,
+                x_pos: s.x_pos,
+                y_pos: s.y_pos,
+                address: s.address,
+                parking_count: s.parking_count
+              }));
+              require('fs').writeFileSync('public/data/stations.json', JSON.stringify(stations));
+              console.log('Saved ' + stations.length + ' stations');
+            "
           else
-            echo "API call failed with status $HTTP_STATUS"
-            cat response.json 2>/dev/null || echo "No response body"
+            echo "API call failed, keeping existing data"
+            if [ ! -f public/data/stations.json ]; then
+              echo "No existing data found, creating empty array"
+              echo "[]" > public/data/stations.json
+            fi
           fi
+          rm -f response.json
+
+      - name: Build
+        run: npm run build
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
