@@ -187,13 +187,6 @@ const RouteResult: React.FC<RouteResultProps> = ({ route, onClose }) => {
                 </div>
             </div>
 
-            {/* 주행 시작 버튼 */}
-            <button onClick={handleKakaoStart}
-                className="w-full bg-gradient-to-br from-primary to-primary-dim text-white font-headline font-bold py-4 rounded-xl flex items-center justify-center gap-3 breathe-shadow active:scale-[0.98] transition-all">
-                <span className="material-symbols-outlined filled">play_arrow</span>
-                카카오맵으로 주행 시작
-            </button>
-
             {/* 다시 검색 */}
             {onClose && (
                 <button onClick={onClose}
