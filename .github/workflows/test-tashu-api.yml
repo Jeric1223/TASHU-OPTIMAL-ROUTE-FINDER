@@ -59,6 +59,8 @@ jobs:
           rm -f response.json
 
       - name: Build
+        env:
+          VITE_KAKAO_API_KEY: ${{ secrets.VITE_KAKAO_API_KEY }}
         run: npm run build
 
       - name: Deploy to GitHub Pages
