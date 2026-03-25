@@ -9,7 +9,7 @@ interface FavoritesListProps {
     onStationSelect?: (station: FavoriteStation) => void;
 }
 
-const FavoritesList: React.FC<FavoritesListProps> = ({ onBack, onNavigateToMap, onNavigateToRoute }) => {
+const FavoritesList: React.FC<FavoritesListProps> = ({ onBack, onNavigateToMap, onNavigateToRoute, onStationSelect }) => {
     const [favorites, setFavorites] = useState<FavoriteStation[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -91,7 +91,14 @@ const FavoritesList: React.FC<FavoritesListProps> = ({ onBack, onNavigateToMap, 
                                 const color = getAvatarColor(idx);
 
                                 return (
-                                    <div key={fav.id} className="bg-surface-container-lowest rounded-2xl p-4 flex items-center gap-3 border border-outline-variant/10">
+                                    <div
+                                        key={fav.id}
+                                        className="bg-surface-container-lowest rounded-2xl p-4 flex items-center gap-3 border border-outline-variant/10 cursor-pointer hover:bg-surface-container-low transition-colors"
+                                        onClick={() => {
+                                            onStationSelect?.(fav);
+                                            onNavigateToMap?.();
+                                        }}
+                                    >
                                         {/* 아바타 */}
                                         <div
                                             className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 font-headline font-bold text-base"
