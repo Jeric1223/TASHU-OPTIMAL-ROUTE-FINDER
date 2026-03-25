@@ -7,6 +7,7 @@ interface StationCardProps {
     compact?: boolean;
     onSetAsStart?: (station: StationWithDistance) => void;
     onSetAsEnd?: (station: StationWithDistance) => void;
+    onCardClick?: (station: StationWithDistance) => void;
 }
 
 // 카카오맵 URL (올바른 포맷: 도착지 설정)
@@ -20,7 +21,7 @@ const naverUrl = (name: string, lat: number, lng: number) =>
         : `https://map.naver.com/index.nhn?elng=${lng}&elat=${lat}&etext=${encodeURIComponent(name)}&menu=route&pathType=1`;
 
 
-const StationCard: React.FC<StationCardProps> = ({ station, compact = false, onSetAsStart, onSetAsEnd }) => {
+const StationCard: React.FC<StationCardProps> = ({ station, compact = false, onSetAsStart, onSetAsEnd, onCardClick }) => {
     const distanceText = station.distance !== undefined
         ? station.distance < 1
             ? `${Math.round(station.distance * 1000)}m 거리`
@@ -30,7 +31,10 @@ const StationCard: React.FC<StationCardProps> = ({ station, compact = false, onS
     // ── 플로팅 Compact 카드 ──
     if (compact) {
         return (
-            <div className="glass-panel bg-white/92 p-5 rounded-lg breathe-shadow border border-white/40 animate-slide-up">
+            <div
+                className="glass-panel bg-white/92 p-5 rounded-lg breathe-shadow border border-white/40 animate-slide-up cursor-pointer hover:bg-white/95 transition-colors"
+                onClick={() => onCardClick?.(station)}
+            >
                 <div className="flex justify-between items-start mb-3">
                     <div className="space-y-0.5 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -72,9 +76,9 @@ const StationCard: React.FC<StationCardProps> = ({ station, compact = false, onS
 
     // ── 풀 스테이션 카드 ──
     return (
-        <div className="bg-surface-container-lowest/90 glass-panel p-6 rounded-lg breathe-shadow border border-outline-variant/10 animate-fade-in">
+        <div className="bg-surface-container-lowest/90 glass-panel p-5 rounded-lg breathe-shadow border border-outline-variant/10 animate-fade-in">
             {/* 헤더 */}
-            <div className="flex justify-between items-start gap-3 mb-5">
+            <div className="flex justify-between items-start gap-3 mb-4">
                 <div className="flex-1 space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
                         <span className="bg-primary-container text-on-primary-container text-[10px] font-bold px-2.5 py-1 rounded-full tracking-wider uppercase">
@@ -100,7 +104,7 @@ const StationCard: React.FC<StationCardProps> = ({ station, compact = false, onS
             </div>
 
             {/* 통계 그리드 */}
-            <div className="grid grid-cols-2 gap-3 mb-5">
+            <div className="grid grid-cols-2 gap-3 mb-4">
                 <div className="bg-primary/5 rounded-lg p-4 flex flex-col items-center border border-primary/10">
                     <span className="text-primary font-headline text-4xl font-black mb-0.5">{station.parking_count}</span>
                     <span className="font-label text-[10px] font-bold text-primary/70 tracking-widest uppercase">대여 가능 자전거</span>
