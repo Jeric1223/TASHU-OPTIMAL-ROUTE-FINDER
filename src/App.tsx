@@ -81,6 +81,7 @@ const App: React.FC = () => {
                 setMapCenter([userCoords.latitude, userCoords.longitude]);
                 setMapZoom(16);
                 setSearchError("현재 위치 근처에 대여 가능한 타슈가 있는 정류소가 없습니다.");
+                setTimeout(() => setSearchError(null), 3000);
             }
         } catch (err) {
             setSearchError(err instanceof Error ? err.message : "위치 정보 접근 권한이 거부되었습니다.");
