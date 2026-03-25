@@ -381,7 +381,7 @@ const App: React.FC = () => {
                             </div>
                             <div className="w-10" />
                         </header>
-                        <div className="flex-1 overflow-y-auto pt-6 px-5 pb-32 no-scrollbar">
+                        <div className="flex-1 overflow-y-auto pt-4 px-4 pb-24 sm:pt-6 sm:px-5 sm:pb-32 no-scrollbar">
                             {!currentRoute
                                 ? <RouteSearch stations={stations} onRouteFound={handleRouteFound} onError={(e) => setSearchError(e)} />
                                 : <RouteResult route={currentRoute} onClose={() => setCurrentRoute(null)} />
