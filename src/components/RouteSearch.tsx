@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import type { LocationSearchResult, OptimalRoute, Station } from '../types/index';
+import React, { useState, useEffect } from 'react';
+import type { LocationSearchResult, OptimalRoute, Station, FavoriteStation } from '../types/index';
 import { searchKakaoLocation } from '../services/kakoApiService';
 import { calculateOptimalRoute } from '../services/routeService';
 import { getCurrentLocation } from '../services/locationService';
+import { getFavorites } from '../services/favoriteService';
 
 interface RouteSearchProps {
     stations: Station[];
@@ -23,6 +24,17 @@ const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onErr
     const [showStartResults, setShowStartResults] = useState(false);
     const [showDestResults, setShowDestResults] = useState(false);
     const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+    const [favorites, setFavorites] = useState<FavoriteStation[]>([]);
+    const [showStartFavorites, setShowStartFavorites] = useState(false);
+    const [showDestFavorites, setShowDestFavorites] = useState(false);
+
+    useEffect(() => {
+        try {
+            setFavorites(getFavorites());
+        } catch (error) {
+            console.error('즐겨찾기 로드 실패:', error);
+        }
+    }, []);
 
     React.useEffect(() => {
         if (initialStart) {
@@ -97,7 +109,10 @@ const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onErr
                         type="text"
                         value={startInput}
                         onChange={(e) => handleStartSearch(e.target.value)}
-                        onFocus={() => startInput.length >= 2 && setShowStartResults(true)}
+                        onFocus={() => {
+                            setShowStartFavorites(true);
+                            if (startInput.length >= 2) setShowStartResults(true);
+                        }}
                         placeholder="출발지를 입력하세요"
                         className="flex-1 bg-transparent text-on-surface placeholder:text-outline text-sm font-medium outline-none"
                     />
@@ -137,7 +152,10 @@ const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onErr
                         type="text"
                         value={destInput}
                         onChange={(e) => handleDestSearch(e.target.value)}
-                        onFocus={() => destInput.length >= 2 && setShowDestResults(true)}
+                        onFocus={() => {
+                            setShowDestFavorites(true);
+                            if (destInput.length >= 2) setShowDestResults(true);
+                        }}
                         placeholder="목적지를 입력하세요"
                         className="flex-1 bg-transparent text-on-surface placeholder:text-outline text-sm font-medium outline-none"
                     />
@@ -149,6 +167,36 @@ const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onErr
                 </div>
             </div>
 
+            {/* 출발지 즐겨찾기 */}
+            {showStartFavorites && favorites.length > 0 && (
+                <div className="bg-surface-container-lowest rounded-lg breathe-shadow border border-outline-variant/10 overflow-hidden">
+                    <div className="px-6 py-2 border-b border-outline-variant/10">
+                        <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">자주 가는 곳</p>
+                    </div>
+                    {favorites.slice(0, 4).map((fav, i) => (
+                        <button key={i} onClick={() => {
+                            const favAsLocation: LocationSearchResult = {
+                                name: fav.name,
+                                address: fav.address,
+                                roadAddress: fav.address,
+                                coords: { latitude: fav.x_pos, longitude: fav.y_pos }
+                            };
+                            setSelectedStart(favAsLocation);
+                            setStartInput(fav.name);
+                            setShowStartFavorites(false);
+                            setShowStartResults(false);
+                        }}
+                            className="w-full text-left flex items-start gap-3 px-6 py-3 hover:bg-surface-container-low border-b border-outline-variant/10 last:border-0">
+                            <span className="material-symbols-outlined text-sm text-primary mt-0.5">favorite</span>
+                            <div>
+                                <p className="text-sm font-semibold text-on-surface">{fav.name}</p>
+                                <p className="text-xs text-on-surface-variant">{fav.address}</p>
+                            </div>
+                        </button>
+                    ))}
+                </div>
+            )}
+
             {/* 출발지 검색 결과 (카드 외부 - overflow 클리핑 방지) */}
             {showStartResults && startResults.length > 0 && (
                 <div className="bg-surface-container-lowest rounded-lg breathe-shadow border border-outline-variant/10 overflow-hidden -mt-3">
@@ -159,6 +207,36 @@ const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onErr
                             <div>
                                 <p className="text-sm font-semibold text-on-surface">{r.name}</p>
                                 <p className="text-xs text-on-surface-variant">{r.roadAddress || r.address}</p>
+                            </div>
+                        </button>
+                    ))}
+                </div>
+            )}
+
+            {/* 목적지 즐겨찾기 */}
+            {showDestFavorites && favorites.length > 0 && (
+                <div className="bg-surface-container-lowest rounded-lg breathe-shadow border border-outline-variant/10 overflow-hidden">
+                    <div className="px-6 py-2 border-b border-outline-variant/10">
+                        <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">자주 가는 곳</p>
+                    </div>
+                    {favorites.slice(0, 4).map((fav, i) => (
+                        <button key={i} onClick={() => {
+                            const favAsLocation: LocationSearchResult = {
+                                name: fav.name,
+                                address: fav.address,
+                                roadAddress: fav.address,
+                                coords: { latitude: fav.x_pos, longitude: fav.y_pos }
+                            };
+                            setSelectedDest(favAsLocation);
+                            setDestInput(fav.name);
+                            setShowDestFavorites(false);
+                            setShowDestResults(false);
+                        }}
+                            className="w-full text-left flex items-start gap-3 px-6 py-3 hover:bg-surface-container-low border-b border-outline-variant/10 last:border-0">
+                            <span className="material-symbols-outlined text-sm text-primary mt-0.5">favorite</span>
+                            <div>
+                                <p className="text-sm font-semibold text-on-surface">{fav.name}</p>
+                                <p className="text-xs text-on-surface-variant">{fav.address}</p>
                             </div>
                         </button>
                     ))}
