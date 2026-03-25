@@ -1,50 +1,185 @@
+# 🚴 TASHU - 타슈 최적 경로 찾기
 
-# 타슈 최적 경로 찾기 (Tashu Optimal Route Finder)
+> 대전시 공공자전거 '타슈'의 가장 가까운 정류소를 찾고, 최적의 경로를 안내하는 PWA 웹 앱
 
-대전시 공공자전거 '타슈'를 더 편리하게 이용할 수 있도록 돕는 웹 애플리케이션입니다. 현재 위치나 목적지 주변에서 이용 가능한 가장 가까운 타슈 대여소를 찾아주고, 지도를 통해 시각적으로 정보를 제공합니다.
-
-이 프로젝트는 클라이언트-서버 아키텍처를 따르며, 프론트엔드는 React로, 백엔드 API 로직은 Netlify 서버리스 함수로 구현되어 있습니다.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Built with React](https://img.shields.io/badge/Built%20with-React%2018-61dafb)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178c6)](https://www.typescriptlang.org)
 
 ## ✨ 주요 기능
 
-- **내 주변 타슈 찾기**: 사용자의 현재 위치를 기반으로, 자전거를 대여할 수 있는 가장 가까운 타슈 정류소를 찾아줍니다.
-- **목적지로 타슈 찾기**: 사용자가 검색한 목적지에서 가장 가까운 타슈 정류소를 찾아줍니다.
-- **인터랙티브 지도**: [Leaflet](https://leafletjs.com/)을 사용하여 모든 타슈 정류장, 사용자 위치, 목적지, 추천 정류소 등을 지도 위에 표시합니다.
-- **실시간 대여 정보**: 각 정류소별로 대여 가능한 자전거 대수를 실시간으로 보여줍니다.
-- **편리한 길찾기 연동**: 검색된 정류소에 대해 카카오맵, 네이버지도, 구글맵으로 바로 길찾기를 할 수 있는 링크를 제공합니다.
-- **보안 강화**: 외부 API 키를 Netlify 서버리스 함수 내에서 안전하게 관리하여 클라이언트 노출을 방지합니다.
-- **반응형 디자인**: 모바일과 데스크톱 환경 모두에 최적화된 UI/UX를 제공합니다.
+### 📍 내 주변 정류소 찾기
+- **현재 위치 기반** 자동 감지로 가장 가까운 타슈 정류소 검색
+- 자전거 **대여 가능 수량** 실시간 표시
+- 거리 표시로 빠른 판단 가능
 
-## 🛠️ 기술 스택
+### 🗺️ 대전 지도 통합
+- **Leaflet** 기반 고성능 맵 엔진
+- 모든 타슈 정류소 시각화
+- 마커 클릭으로 정류소 상세 정보 확인
 
-- **프레임워크**: React, TypeScript
-- **백엔드**: Netlify Functions (Node.js)
-- **지도**: Leaflet, React-Leaflet
-- **스타일링**: Tailwind CSS
-- **위치 서비스**: Browser Geolocation API
-- **장소 검색**: Kakao Maps Keyword Search API (서버리스 함수 통해 호출)
-- **데이터**: **대전시 공공자전거 '타슈' 실시간 API** (서버리스 함수 통해 호출)
+### 🛣️ 최적 경로 찾기
+- 출발지/목적지 입력으로 **최단 경로 계산**
+- 자전거 주행 구간과 도보 구간 구분 표시
+- **카카오맵/네이버지도** 연동으로 실제 네비게이션
 
-## 📁 프로젝트 구조
+### ❤️ 즐겨찾기 관리
+- 자주 가는 정류소 저장
+- 빠른 접근으로 편한 사용성
 
+### 📱 PWA (Progressive Web App)
+- **앱처럼 설치 가능** (iOS, Android, PC)
+- 오프라인 지원으로 네트워크 없이도 기본 기능 사용
+- 빠른 로딩과 부드러운 애니메이션
+
+---
+
+## 🚀 빠른 시작
+
+### 온라인 데모
 ```
-.
-├── README.md               # 프로젝트 설명 파일
-├── index.html              # 메인 HTML 파일
-├── index.tsx               # React 앱 진입점
-├── metadata.json           # 프로젝트 메타데이터
-├── netlify.toml            # Netlify 배포 및 개발 설정
-├── types.ts                # TypeScript 타입 정의
-├── netlify/
-│   └── functions/          # 서버리스 함수
-│       ├── search.js       # Kakao 장소 검색 API 프록시
-│       └── stations.js     # 타슈 정류소 데이터 API
-├── components/             # React 컴포넌트
-│   ├── ...
-└── services/               # 비즈니스 로직 및 API 호출 서비스
-    ├── locationService.ts
-    ├── naverApiService.ts
-    └── tashuService.ts
+https://kimjaehyeon.github.io/TASHU-OPTIMAL-ROUTE-FINDER/
 ```
 
+### 앱으로 설치하기
 
+**📱 모바일 (iOS)**
+1. Safari에서 위 링크 방문
+2. 공유 버튼 → "홈 화면에 추가"
+
+**📱 모바일 (Android)**
+1. Chrome/Edge에서 위 링크 방문
+2. 우측 상단 메뉴 → "설치" 또는 자동 설치 배너 클릭
+
+**💻 PC (Windows/Mac)**
+1. Chrome/Edge에서 위 링크 방문
+2. 주소창 우측 "앱 설치" 아이콘 클릭
+
+---
+
+## 🛠️ 로컬 개발 환경 구축
+
+### 필수 요구사항
+- Node.js 16+
+- npm 또는 yarn
+
+### 설치
+
+```bash
+git clone https://github.com/kimjaehyeon/TASHU-OPTIMAL-ROUTE-FINDER.git
+cd TASHU-OPTIMAL-ROUTE-FINDER
+npm install
+```
+
+### 환경 변수 설정
+
+`.env` 파일 생성:
+
+```env
+VITE_KAKAO_API_KEY=YOUR_KAKAO_API_KEY
+VITE_TASHU_PROXY_URL=https://your-proxy-server.com
+GEMINI_API_KEY=YOUR_GEMINI_API_KEY
+```
+
+### 개발 서버 실행
+
+```bash
+npm run dev
+```
+
+### 프로덕션 빌드
+
+```bash
+npm run build
+npm run preview
+npm run deploy
+```
+
+---
+
+## 📋 사용 방법
+
+### 1️⃣ 내 주변 정류소 찾기
+1. 앱 실행 시 위치 허용 요청
+2. 자동으로 가장 가까운 정류소 표시
+3. 정류소 카드에서 **카카오맵** 또는 **네이버지도** 클릭으로 길찾기
+
+### 2️⃣ 경로 찾기
+1. 하단 네비게이션 **경로 찾기** 탭 클릭
+2. 출발지/목적지 입력
+3. **"경로 찾기"** 버튼으로 최적 경로 계산
+4. **"카카오맵으로 주행 시작"** 클릭으로 네비게이션
+
+### 3️⃣ 즐겨찾기 관리
+1. 하단 네비게이션 **즐겨찾기** 탭
+2. 정류소에서 하트 아이콘으로 저장
+3. 저장한 정류소 목록 관리
+
+---
+
+## 🏗️ 기술 스택
+
+- **React 18** - UI 라이브러리
+- **TypeScript** - 타입 안전성
+- **Vite** - 고속 번들러
+- **Tailwind CSS** - 유틸리티 CSS
+- **Leaflet** - 지도 라이브러리
+- **Workbox** - PWA 서비스 워커
+
+### 외부 API
+- 카카오 Maps/Local API
+- 타슈 공개 API
+- 네이버 지도
+
+---
+
+## 🎨 디자인 시스템
+
+**Stitch 디자인 시스템** 기반의 Material Design 3
+
+- **Primary Color**: `#006a3c` (타슈 녹색)
+- **Typography**: Plus Jakarta Sans + Manrope
+- **Radius**: 현대적이고 친근한 설계
+
+---
+
+## 📄 라이선스
+
+MIT License - 자유롭게 사용, 수정, 배포 가능
+
+---
+
+## 🤝 기여 방법
+
+1. Fork 이 저장소
+2. Feature 브랜치 생성 (`git checkout -b feature/amazing-feature`)
+3. 변경사항 커밋 (`git commit -m 'Add amazing feature'`)
+4. 브랜치 Push (`git push origin feature/amazing-feature`)
+5. Pull Request 열기
+
+---
+
+## 🚀 향후 계획
+
+- [ ] 자전거 반납 지점 찾기
+- [ ] 경로 히스토리 저장
+- [ ] 추천 경로 알고리즘 개선
+- [ ] 실시간 정류소 상태 업데이트
+- [ ] 다국어 지원
+
+---
+
+## 📞 문의 & 피드백
+
+- **Issues**: [GitHub Issues](https://github.com/kimjaehyeon/TASHU-OPTIMAL-ROUTE-FINDER/issues)
+- **Email**: kim.jaehyeon@example.com
+
+---
+
+<div align="center">
+
+**⭐ 이 프로젝트가 도움이 되었다면 별을 눌러주세요!**
+
+Made with ❤️ by [Kim Jaehyeon](https://github.com/kimjaehyeon)
+
+</div>
