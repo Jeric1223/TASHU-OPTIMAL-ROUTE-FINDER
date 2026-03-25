@@ -44,6 +44,9 @@ const App: React.FC = () => {
     const [isCentering, setIsCentering] = useState<boolean>(false);
     const [currentRoute, setCurrentRoute] = useState<OptimalRoute | null>(null);
 
+    const [routeStartStation, setRouteStartStation] = useState<LocationSearchResult | null>(null);
+    const [routeEndStation, setRouteEndStation] = useState<LocationSearchResult | null>(null);
+
     const loadStations = useCallback(async () => {
         setIsDataLoading(true);
         setDataError(null);
@@ -100,6 +103,28 @@ const App: React.FC = () => {
         setSelectedStationOnMap(stationWithDistance);
         setMapCenter([station.x_pos, station.y_pos]);
         setMapZoom(16);
+    }, []);
+
+    const handleSetRouteStart = useCallback((station: StationWithDistance) => {
+        const routeStart: LocationSearchResult = {
+            name: station.name,
+            address: station.address,
+            roadAddress: station.address,
+            coords: { latitude: station.x_pos, longitude: station.y_pos },
+        };
+        setRouteStartStation(routeStart);
+        setActiveTab(Tab.Route);
+    }, []);
+
+    const handleSetRouteEnd = useCallback((station: StationWithDistance) => {
+        const routeEnd: LocationSearchResult = {
+            name: station.name,
+            address: station.address,
+            roadAddress: station.address,
+            coords: { latitude: station.x_pos, longitude: station.y_pos },
+        };
+        setRouteEndStation(routeEnd);
+        setActiveTab(Tab.Route);
     }, []);
 
     const handleDestinationSearch = useCallback(async (destination: string) => {
@@ -287,7 +312,12 @@ const App: React.FC = () => {
             {/* ── compact 카드: 내 주변 자동 탐색 결과 ── */}
             {showNearbyCard && (
                 <div className="fixed left-4 right-4 z-40 animate-slide-up" style={{ bottom: '88px' }}>
-                    <StationCard station={nearbyResult!} compact />
+                    <StationCard
+                        station={nearbyResult!}
+                        compact
+                        onSetAsStart={handleSetRouteStart}
+                        onSetAsEnd={handleSetRouteEnd}
+                    />
                 </div>
             )}
 
@@ -310,7 +340,11 @@ const App: React.FC = () => {
                         >
                             <span className="material-symbols-outlined text-sm text-on-surface-variant">close</span>
                         </button>
-                        <StationCard station={selectedStationOnMap!} />
+                        <StationCard
+                            station={selectedStationOnMap!}
+                            onSetAsStart={handleSetRouteStart}
+                            onSetAsEnd={handleSetRouteEnd}
+                        />
                     </div>
                 </div>
             )}
@@ -393,7 +427,13 @@ const App: React.FC = () => {
                         </header>
                         <div className="flex-1 overflow-y-auto pt-4 px-4 pb-24 sm:pt-6 sm:px-5 sm:pb-safe sm:pb-32 no-scrollbar">
                             {!currentRoute
-                                ? <RouteSearch stations={stations} onRouteFound={handleRouteFound} onError={(e) => setSearchError(e)} />
+                                ? <RouteSearch
+                                    stations={stations}
+                                    onRouteFound={handleRouteFound}
+                                    onError={(e) => setSearchError(e)}
+                                    initialStart={routeStartStation}
+                                    initialDest={routeEndStation}
+                                  />
                                 : <RouteResult route={currentRoute} onClose={() => setCurrentRoute(null)} />
                             }
                         </div>

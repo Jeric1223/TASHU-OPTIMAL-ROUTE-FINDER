@@ -8,9 +8,11 @@ interface RouteSearchProps {
     stations: Station[];
     onRouteFound: (route: OptimalRoute) => void;
     onError: (error: string) => void;
+    initialStart?: LocationSearchResult | null;
+    initialDest?: LocationSearchResult | null;
 }
 
-const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onError }) => {
+const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onError, initialStart, initialDest }) => {
     const [startInput, setStartInput] = useState('');
     const [destInput, setDestInput] = useState('');
     const [startResults, setStartResults] = useState<LocationSearchResult[]>([]);
@@ -21,6 +23,17 @@ const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onErr
     const [showStartResults, setShowStartResults] = useState(false);
     const [showDestResults, setShowDestResults] = useState(false);
     const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+
+    React.useEffect(() => {
+        if (initialStart) {
+            setSelectedStart(initialStart);
+            setStartInput(initialStart.name);
+        }
+        if (initialDest) {
+            setSelectedDest(initialDest);
+            setDestInput(initialDest.name);
+        }
+    }, [initialStart, initialDest]);
 
     const handleUseCurrentLocation = async () => {
         setIsLoadingLocation(true);

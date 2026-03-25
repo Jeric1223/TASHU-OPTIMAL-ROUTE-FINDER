@@ -5,6 +5,8 @@ import FavoriteButton from "./FavoriteButton";
 interface StationCardProps {
     station: StationWithDistance;
     compact?: boolean;
+    onSetAsStart?: (station: StationWithDistance) => void;
+    onSetAsEnd?: (station: StationWithDistance) => void;
 }
 
 // 카카오맵 URL (올바른 포맷: 도착지 설정)
@@ -18,7 +20,7 @@ const naverUrl = (name: string, lat: number, lng: number) =>
         : `https://map.naver.com/index.nhn?elng=${lng}&elat=${lat}&etext=${encodeURIComponent(name)}&menu=route&pathType=1`;
 
 
-const StationCard: React.FC<StationCardProps> = ({ station, compact = false }) => {
+const StationCard: React.FC<StationCardProps> = ({ station, compact = false, onSetAsStart, onSetAsEnd }) => {
     const distanceText = station.distance !== undefined
         ? station.distance < 1
             ? `${Math.round(station.distance * 1000)}m 거리`
@@ -103,9 +105,21 @@ const StationCard: React.FC<StationCardProps> = ({ station, compact = false }) =
                     <span className="text-primary font-headline text-4xl font-black mb-0.5">{station.parking_count}</span>
                     <span className="font-label text-[10px] font-bold text-primary/70 tracking-widest uppercase">대여 가능 자전거</span>
                 </div>
-                <div className="bg-surface-container-low rounded-lg p-4 flex flex-col items-center justify-center">
-                    <span className="material-symbols-outlined text-tertiary text-2xl mb-1">electric_bolt</span>
-                    <span className="font-label text-[10px] font-bold text-on-surface-variant tracking-widest uppercase">타슈 정류소</span>
+                <div className="grid grid-cols-2 gap-2">
+                    <button
+                        onClick={() => onSetAsStart?.(station)}
+                        className="bg-primary/10 text-primary rounded-lg p-3 flex flex-col items-center justify-center hover:bg-primary/15 active:scale-95 transition-all border border-primary/20"
+                    >
+                        <span className="material-symbols-outlined text-lg mb-0.5">place</span>
+                        <span className="font-label text-[9px] font-bold tracking-widest uppercase">시작점</span>
+                    </button>
+                    <button
+                        onClick={() => onSetAsEnd?.(station)}
+                        className="bg-primary/10 text-primary rounded-lg p-3 flex flex-col items-center justify-center hover:bg-primary/15 active:scale-95 transition-all border border-primary/20"
+                    >
+                        <span className="material-symbols-outlined text-lg mb-0.5">flag</span>
+                        <span className="font-label text-[9px] font-bold tracking-widest uppercase">도착점</span>
+                    </button>
                 </div>
             </div>
 
