@@ -28,7 +28,7 @@ const StationCard: React.FC<StationCardProps> = ({ station, compact = false }) =
     // ── 플로팅 Compact 카드 ──
     if (compact) {
         return (
-            <div className="glass-panel bg-white/92 p-5 rounded-xl breathe-shadow border border-white/40 animate-slide-up">
+            <div className="glass-panel bg-white/92 p-5 rounded-lg breathe-shadow border border-white/40 animate-slide-up">
                 <div className="flex justify-between items-start mb-3">
                     <div className="space-y-0.5 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -58,7 +58,7 @@ const StationCard: React.FC<StationCardProps> = ({ station, compact = false }) =
                         href={kakaoToUrl(station.name, station.x_pos, station.y_pos)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="bg-[#FAE300] text-[#3C1E1E] font-bold px-4 py-2.5 rounded-xl flex items-center gap-1.5 active:scale-95 transition-all shadow-sm"
+                        className="bg-[#FAE300] text-[#3C1E1E] font-bold px-4 py-2.5 rounded-lg flex items-center gap-1.5 active:scale-95 transition-all shadow-sm"
                     >
                         <span className="material-symbols-outlined text-sm filled">directions</span>
                         <span className="text-sm">카카오맵</span>
@@ -70,7 +70,7 @@ const StationCard: React.FC<StationCardProps> = ({ station, compact = false }) =
 
     // ── 풀 스테이션 카드 ──
     return (
-        <div className="bg-surface-container-lowest/90 glass-panel p-6 rounded-xl breathe-shadow border border-outline-variant/10 animate-fade-in">
+        <div className="bg-surface-container-lowest/90 glass-panel p-6 rounded-lg breathe-shadow border border-outline-variant/10 animate-fade-in">
             {/* 헤더 */}
             <div className="flex justify-between items-start gap-3 mb-5">
                 <div className="flex-1 space-y-1">
@@ -99,27 +99,27 @@ const StationCard: React.FC<StationCardProps> = ({ station, compact = false }) =
 
             {/* 통계 그리드 */}
             <div className="grid grid-cols-2 gap-3 mb-5">
-                <div className="bg-primary/5 rounded-xl p-4 flex flex-col items-center border border-primary/10">
+                <div className="bg-primary/5 rounded-lg p-4 flex flex-col items-center border border-primary/10">
                     <span className="text-primary font-headline text-4xl font-black mb-0.5">{station.parking_count}</span>
                     <span className="font-label text-[10px] font-bold text-primary/70 tracking-widest uppercase">대여 가능 자전거</span>
                 </div>
-                <div className="bg-surface-container-low rounded-xl p-4 flex flex-col items-center justify-center">
+                <div className="bg-surface-container-low rounded-lg p-4 flex flex-col items-center justify-center">
                     <span className="material-symbols-outlined text-tertiary text-2xl mb-1">electric_bolt</span>
                     <span className="font-label text-[10px] font-bold text-on-surface-variant tracking-widest uppercase">타슈 정류소</span>
                 </div>
             </div>
 
             {/* 지도 앱 길찾기 버튼들 */}
-            <div className="grid grid-cols-2 gap-2 mb-4">
+            <div className="grid grid-cols-2 gap-3 mb-4">
                 <a href={kakaoToUrl(station.name, station.x_pos, station.y_pos)}
                     target="_blank" rel="noopener noreferrer"
-                    className="flex flex-col items-center gap-1.5 py-3 rounded-xl bg-[#FAE300] hover:opacity-90 active:scale-95 transition-all">
+                    className="flex flex-col items-center gap-2 py-4 rounded-lg bg-[#FAE300] hover:opacity-90 active:scale-95 transition-all">
                     <span className="text-base">🗺️</span>
                     <span className="text-[10px] font-bold text-[#3C1E1E]">카카오맵</span>
                 </a>
                 <a href={naverUrl(station.name, station.x_pos, station.y_pos)}
                     target="_blank" rel="noopener noreferrer"
-                    className="flex flex-col items-center gap-1.5 py-3 rounded-xl bg-[#03C75A] hover:opacity-90 active:scale-95 transition-all">
+                    className="flex flex-col items-center gap-2 py-4 rounded-lg bg-[#03C75A] hover:opacity-90 active:scale-95 transition-all">
                     <span className="text-base">🗺️</span>
                     <span className="text-[10px] font-bold text-white">네이버지도</span>
                 </a>
