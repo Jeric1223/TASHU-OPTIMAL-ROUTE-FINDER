@@ -1,10 +1,10 @@
 # CLAUDE.md
 
-이 파일은 이 저장소에서 코드 작업을 할 때 Claude Code(claude.ai/code)에 제공되는 지침입니다.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## 프로젝트 개요
 
-**타슈 최적 경로 찾기**는 대전시의 공공자전거 '타슈'의 가장 가까운 정류소를 찾도록 도와주는 웹 애플리케이션입니다. 현재 위치 주변 정류소 찾기와 목적지 주변 정류소 찾기의 두 가지 주요 기능을 제공합니다. React, TypeScript, Vite로 구축되었으며, Leaflet을 인터랙티브 지도에 사용하고 여러 API(카카오맵, 네이버지도, 타슈 공식 API)와 통합됩니다.
+**타슈 최적 경로 찾기**는 대전시의 공공자전거 '타슈'의 가장 가까운 정류소를 찾고 최적 경로를 안내하는 PWA 웹 애플리케이션입니다. React, TypeScript, Vite로 구축되었으며, Leaflet 지도와 카카오맵/타슈 API를 통합합니다. Netlify Functions를 서버리스 백엔드로, Workbox를 통한 오프라인 캐싱을 지원합니다.
 
 ## 개발 설정
 
@@ -15,10 +15,12 @@
 ```env
 VITE_KAKAO_API_KEY=<카카오_REST_API_키>
 VITE_TASHU_PROXY_URL=<타슈_프록시_URL>
+GEMINI_API_KEY=<Gemini_API_키>  # 선택사항, AI 기능용
 ```
 
 - **VITE_KAKAO_API_KEY**: 카카오 개발자 센터의 REST API 키 (장소 검색에 사용)
 - **VITE_TASHU_PROXY_URL**: 타슈 프록시 서버 URL (정류소 데이터를 가져오는 데 필수). 이것이 없으면 앱이 정류소 데이터를 불러올 수 없습니다.
+- **GEMINI_API_KEY**: Google Gemini AI API 키 (선택사항, `process.env.GEMINI_API_KEY`로 Vite define을 통해 주입)
 
 ### 자주 사용하는 명령어
 
@@ -27,8 +29,10 @@ npm install              # 의존성 설치
 npm run dev             # 개발 서버 시작 (http://localhost:5173에서 실행)
 npm run build           # 프로덕션용 빌드
 npm run preview         # 로컬에서 프로덕션 빌드 미리보기
-npm run deploy          # GitHub Pages에 배포
+npm run deploy          # GitHub Pages에 배포 (gh-pages 사용)
 ```
+
+개발 서버는 `basicSsl` 플러그인으로 HTTPS로 실행됩니다 (지오로케이션 API가 HTTPS를 요구). 경로 별칭 `@`는 `src/`를 가리킵니다.
 
 ## 아키텍처 개요
 
@@ -67,26 +71,17 @@ npm run deploy          # GitHub Pages에 배포
 - **naverApiService.ts** & **naverService.ts** - 네이버맵 통합 (향후 사용을 위해 준비됨)
 - **geminiService.ts** - Google Gemini AI 통합 (향후 기능을 위해 준비됨)
 
-### 컴포넌트
-
-- **App.tsx** - 글로벌 상태(정류소, 검색 결과, 지도 상태 등)를 관리하는 메인 애플리케이션 컴포넌트
-- **TashuMap.tsx** - 정류소, 사용자 위치, 목적지 마커가 있는 Leaflet 지도 표시
-- **NearbySearch.tsx** - 주변 정류소 검색을 트리거하는 UI
-- **DestinationSearch.tsx** - 목적지 기반 검색을 위한 검색 양식 및 결과 표시
-- **StationCard.tsx** - 액션 버튼이 있는 개별 정류소 정보 표시
-- **icons.tsx** - SVG 아이콘 컴포넌트
-
 ### 타입 시스템
 
-모든 핵심 타입은 `types.ts`에 정의되어 있습니다:
+모든 핵심 타입은 `src/types/index.ts`에 정의되어 있습니다. 주요 타입: `Station`, `StationWithDistance`, `Coordinates`, `OptimalRoute`, `RouteSegment`, `FavoriteStation`.
 
-- **Station** - 타슈 API의 핵심 정류소 데이터 (id, name, x_pos/y_pos 좌표, address, parking_count)
-- **StationWithDistance** - 계산된 거리가 추가된 확장된 Station
-- **Coordinates** - 위도/경도 객체
-- **LocationSearchResult** - 장소 검색 결과 구조
-- **KakaoKeywordSearchResponse** - 카카오 API 응답 타입
+**주의**: 타슈 API는 혼동의 여지가 있는 네이밍을 사용하는데, `x_pos` = 위도, `y_pos` = 경도입니다.
 
-**주의**: 타슈 API는 혼동의 여지가 있는 네이밍을 사용하는데, `x_pos` = 위도, `y_pos` = 경도입니다. 이는 types.ts에 문서화되어 있지만 여전히 직관적이지 않습니다.
+### 서버리스 백엔드
+
+`netlify/functions/`에 Netlify Functions가 있습니다:
+- **kakao-search.ts** - 카카오 API 프록시 (API 키 보호)
+- **tashu-stations.ts** - 타슈 정류소 데이터 프록시
 
 ## 중요한 구현 세부 사항
 
@@ -94,11 +89,11 @@ npm run deploy          # GitHub Pages에 배포
 
 `vite.config.ts`는 개발용 프록시 설정을 포함합니다:
 
-- `/api/*` 경로는 타슈 API(`https://bikeapp.tashu.or.kr:50041/v1/openapi/station`)로 라우팅
-- `/naver/*` 경로는 네이버 지오코딩 API로 라우팅
-- `/kakao/*` 경로는 카카오 검색 API로 라우팅
+- `/api/tashu/*` → `https://bikeapp.tashu.or.kr:50041/v1/openapi/*`
+- `/api/kakao/*` → `https://dapi.kakao.com/*`
+- `/naver/*` → 네이버 지오코딩 API
 
-이러한 프록시는 개발 전용이며 프로덕션에서는 작동하지 않습니다. 프로덕션에서는 API 호출이 API 키를 보호하기 위해 백엔드 서버를 통해 이루어져야 합니다 (kakoApiService.ts의 주석 참고).
+개발 전용 프록시입니다. 프로덕션에서는 Netlify Functions(`netlify/functions/`)를 통해 API 키를 보호합니다. PWA의 Workbox 런타임 캐싱이 `/.netlify/functions/*` 응답을 NetworkFirst로 캐시합니다.
 
 ### 거리 계산
 
@@ -169,5 +164,5 @@ npm run deploy          # GitHub Pages에 배포
 ## 빌드 결과물
 
 - 프로덕션 빌드는 `dist/` 디렉토리로 출력됩니다
-- 기본 경로는 vite.config.ts에서 `/TASHU-OPTIMAL-ROUTE-FINDER/`로 설정됩니다 (GitHub Pages 배포용)
+- 기본 경로는 vite.config.ts에서 `/`로 설정됩니다 (Netlify 배포 기준)
 - 빌드는 사용하지 않는 코드를 제거하고 번들 크기를 최적화합니다

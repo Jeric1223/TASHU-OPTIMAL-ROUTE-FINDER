@@ -1,0 +1,26 @@
+name: Test TASHU API Access
+
+on:
+  workflow_dispatch: # 수동 실행
+
+jobs:
+  test-api:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test TASHU API call
+        env:
+          API_TOKEN: ${{ secrets.TASHU_API_KEY }}
+        run: |
+          echo "Testing TASHU API from GitHub Actions..."
+          HTTP_STATUS=$(curl -s -o response.json -w "%{http_code}" \
+            -H "api-token: $API_TOKEN" \
+            "https://bikeapp.tashu.or.kr:50041/v1/openapi/station")
+          echo "HTTP Status: $HTTP_STATUS"
+          if [ "$HTTP_STATUS" = "200" ]; then
+            echo "API call successful!"
+            echo "First 500 chars of response:"
+            head -c 500 response.json
+          else
+            echo "API call failed with status $HTTP_STATUS"
+            cat response.json 2>/dev/null || echo "No response body"
+          fi
