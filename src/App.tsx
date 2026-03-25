@@ -366,10 +366,10 @@ const App: React.FC = () => {
 
             {/* ── 경로 탭 오버레이 ── */}
             {activeTab === Tab.Route && (
-                <div className="fixed inset-0 bottom-[88px] z-[70] flex flex-col animate-fade-in">
+                <div className="fixed inset-0 bottom-[88px] z-[70] flex flex-col animate-fade-in pt-safe">
                     <div className="absolute inset-0 bg-surface/80 backdrop-blur-sm" />
                     <div className="relative z-10 flex flex-col h-full">
-                        <header className="flex items-center px-4 h-14 mt-4 mx-4 bg-white/85 backdrop-blur-xl rounded-full shadow-breathe">
+                        <header className="flex items-center px-4 h-14 mt-2 sm:mt-4 mx-4 bg-white/85 backdrop-blur-xl rounded-full shadow-breathe">
                             <button
                                 onClick={() => setActiveTab(Tab.Nearby)}
                                 className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-low transition-colors text-primary active:scale-95"
@@ -381,7 +381,7 @@ const App: React.FC = () => {
                             </div>
                             <div className="w-10" />
                         </header>
-                        <div className="flex-1 overflow-y-auto pt-4 px-4 pb-24 sm:pt-6 sm:px-5 sm:pb-32 no-scrollbar">
+                        <div className="flex-1 overflow-y-auto pt-4 px-4 pb-24 sm:pt-6 sm:px-5 sm:pb-safe sm:pb-32 no-scrollbar">
                             {!currentRoute
                                 ? <RouteSearch stations={stations} onRouteFound={handleRouteFound} onError={(e) => setSearchError(e)} />
                                 : <RouteResult route={currentRoute} onClose={() => setCurrentRoute(null)} />

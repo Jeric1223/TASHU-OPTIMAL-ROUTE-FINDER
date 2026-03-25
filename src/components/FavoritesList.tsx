@@ -42,9 +42,9 @@ const FavoritesList: React.FC<FavoritesListProps> = ({ onBack, onNavigateToMap, 
     const getInitial = (name: string) => name.charAt(0).toUpperCase();
 
     return (
-        <div className="fixed inset-0 z-[70] flex flex-col bg-surface animate-fade-in">
+        <div className="fixed inset-0 z-[70] flex flex-col bg-surface animate-fade-in pt-safe">
             {/* 헤더 */}
-            <header className="flex items-center justify-between px-4 h-14 mt-4 mx-4 bg-surface-container-lowest/85 backdrop-blur-xl rounded-full shadow-breathe">
+            <header className="flex items-center justify-between px-4 h-14 mt-2 sm:mt-4 mx-4 bg-surface-container-lowest/85 backdrop-blur-xl rounded-full shadow-breathe">
                 <button
                     onClick={onBack}
                     className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-low transition-colors text-primary active:scale-95"
@@ -58,7 +58,7 @@ const FavoritesList: React.FC<FavoritesListProps> = ({ onBack, onNavigateToMap, 
             </header>
 
             {/* 스크롤 영역 */}
-            <div className="flex-1 overflow-y-auto pt-6 px-5 pb-32 no-scrollbar">
+            <div className="flex-1 overflow-y-auto pt-4 px-4 pb-24 sm:pt-6 sm:px-5 sm:pb-safe sm:pb-32 no-scrollbar">
                 {/* "Saved Stations" 섹션 */}
                 <section className="mb-8">
                     <div className="flex items-center justify-between mb-4">
