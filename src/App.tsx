@@ -316,7 +316,7 @@ const App: React.FC = () => {
             )}
 
             {/* ── 하단 내비게이션 바 ── */}
-            <nav className="fixed bottom-0 w-full z-50 flex justify-around items-center px-4 pb-safe pt-3 bottom-nav rounded-t-[2rem]">
+            <nav className="fixed bottom-12 w-full z-50 flex justify-around items-center px-4 pb-safe pt-3 bottom-nav rounded-t-[2rem]">
                 {/* 내 주변 */}
                 <NavTab
                     icon="explore"
