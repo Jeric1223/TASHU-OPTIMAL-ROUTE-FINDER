@@ -14,5 +14,9 @@
       "Bash(lsof:*)",
       "Bash(xargs kill:*)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "atlassian"
+  ],
+  "enableAllProjectMcpServers": true
 }

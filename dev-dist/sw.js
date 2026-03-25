@@ -79,7 +79,7 @@ define(['./workbox-f87553f6'], (function (workbox) { 'use strict';
    */
   workbox.precacheAndRoute([{
     "url": "index.html",
-    "revision": "0.03g5ui5ng68"
+    "revision": "0.k94fk5g8fb8"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("index.html"), {
@@ -92,11 +92,11 @@ define(['./workbox-f87553f6'], (function (workbox) { 'use strict';
       maxAgeSeconds: 604800
     })]
   }), 'GET');
-  workbox.registerRoute(/\/.netlify\/functions\/.*/i, new workbox.NetworkFirst({
-    "cacheName": "api-cache",
+  workbox.registerRoute(/\/data\/stations\.json/i, new workbox.NetworkFirst({
+    "cacheName": "stations-cache",
     "networkTimeoutSeconds": 10,
     plugins: [new workbox.ExpirationPlugin({
-      maxEntries: 50,
+      maxEntries: 1,
       maxAgeSeconds: 300
     })]
   }), 'GET');

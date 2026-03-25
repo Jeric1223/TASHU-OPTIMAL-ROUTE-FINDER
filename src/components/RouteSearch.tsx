@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import type { Coordinates, LocationSearchResult, OptimalRoute, Station } from '../types/index';
+import React, { useState } from 'react';
+import type { LocationSearchResult, OptimalRoute, Station } from '../types/index';
 import { searchKakaoLocation } from '../services/kakoApiService';
 import { calculateOptimalRoute } from '../services/routeService';
 import { getCurrentLocation } from '../services/locationService';
-import { SearchIcon, CloseIcon } from './icons';
 
 interface RouteSearchProps {
     stations: Station[];
@@ -21,81 +20,45 @@ const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onErr
     const [isSearching, setIsSearching] = useState(false);
     const [showStartResults, setShowStartResults] = useState(false);
     const [showDestResults, setShowDestResults] = useState(false);
-    const [isLoadingCurrentLocation, setIsLoadingCurrentLocation] = useState(false);
+    const [isLoadingLocation, setIsLoadingLocation] = useState(false);
 
     const handleUseCurrentLocation = async () => {
-        setIsLoadingCurrentLocation(true);
+        setIsLoadingLocation(true);
         try {
             const coords = await getCurrentLocation();
-            // Create a location result for current location
-            setSelectedStart({
-                name: '현재 위치',
-                address: `위도: ${coords.latitude.toFixed(4)}, 경도: ${coords.longitude.toFixed(4)}`,
-                roadAddress: '',
-                coords,
-            });
+            setSelectedStart({ name: '현재 위치', address: '', roadAddress: '', coords });
             setStartInput('현재 위치');
             setStartResults([]);
             setShowStartResults(false);
         } catch (error) {
             onError(error instanceof Error ? error.message : '현재 위치를 가져올 수 없습니다');
         } finally {
-            setIsLoadingCurrentLocation(false);
+            setIsLoadingLocation(false);
         }
     };
 
     const handleStartSearch = async (query: string) => {
         setStartInput(query);
-        if (query.length < 2) {
-            setStartResults([]);
-            return;
-        }
-
+        setSelectedStart(null);
+        if (query.length < 2) { setStartResults([]); setShowStartResults(false); return; }
         try {
             setIsSearching(true);
             const results = await searchKakaoLocation(query);
             setStartResults(results);
-            setShowStartResults(true);
-        } catch (error) {
-            onError(error instanceof Error ? error.message : '검색 중 오류가 발생했습니다');
-            setStartResults([]);
-        } finally {
-            setIsSearching(false);
-        }
+            setShowStartResults(results.length > 0);
+        } catch { setStartResults([]); } finally { setIsSearching(false); }
     };
 
     const handleDestSearch = async (query: string) => {
         setDestInput(query);
-        if (query.length < 2) {
-            setDestResults([]);
-            return;
-        }
-
+        setSelectedDest(null);
+        if (query.length < 2) { setDestResults([]); setShowDestResults(false); return; }
         try {
             setIsSearching(true);
             const results = await searchKakaoLocation(query);
             setDestResults(results);
-            setShowDestResults(true);
-        } catch (error) {
-            onError(error instanceof Error ? error.message : '검색 중 오류가 발생했습니다');
-            setDestResults([]);
-        } finally {
-            setIsSearching(false);
-        }
-    };
-
-    const handleSelectStart = (result: LocationSearchResult) => {
-        setSelectedStart(result);
-        setStartInput(result.name);
-        setShowStartResults(false);
-        setStartResults([]);
-    };
-
-    const handleSelectDest = (result: LocationSearchResult) => {
-        setSelectedDest(result);
-        setDestInput(result.name);
-        setShowDestResults(false);
-        setDestResults([]);
+            setShowDestResults(results.length > 0);
+        } catch { setDestResults([]); } finally { setIsSearching(false); }
     };
 
     const handleFindRoute = () => {
@@ -103,148 +66,137 @@ const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onErr
             onError('출발지와 목적지를 모두 선택해주세요');
             return;
         }
-
-        try {
-            const route = calculateOptimalRoute(selectedStart.coords, selectedDest.coords, stations);
-            if (route) {
-                onRouteFound(route);
-            } else {
-                onError('경로를 계산할 수 없습니다. 주변 정류소가 부족합니다.');
-            }
-        } catch (error) {
-            onError(error instanceof Error ? error.message : '경로 계산 중 오류가 발생했습니다');
-        }
-    };
-
-    const clearStart = () => {
-        setStartInput('');
-        setSelectedStart(null);
-        setStartResults([]);
-        setShowStartResults(false);
-    };
-
-    const clearDest = () => {
-        setDestInput('');
-        setSelectedDest(null);
-        setDestResults([]);
-        setShowDestResults(false);
+        const route = calculateOptimalRoute(selectedStart.coords, selectedDest.coords, stations);
+        if (route) onRouteFound(route);
+        else onError('경로를 계산할 수 없습니다. 주변 정류소가 부족합니다.');
     };
 
     return (
-        <div className="space-y-4">
-            {/* Start Location */}
-            <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">출발지</label>
-                <div className="relative">
-                    <div className="flex gap-2">
-                        <input
-                            type="text"
-                            value={startInput}
-                            onChange={(e) => handleStartSearch(e.target.value)}
-                            onFocus={() => startInput.length >= 2 && setShowStartResults(true)}
-                            placeholder="출발지를 입력하세요"
-                            className="neomorph-input flex-1"
-                        />
+        <div className="space-y-5">
+            {/* 출발/도착 입력 카드 */}
+            <div className="bg-surface-container-lowest rounded-xl breathe-shadow">
+                {/* 출발지 */}
+                <div className="flex items-center px-5 py-4 gap-3 border-b border-outline-variant/10">
+                    <div className="w-8 h-8 rounded-full bg-surface-container-low flex items-center justify-center flex-shrink-0">
+                        <span className="material-symbols-outlined text-sm text-on-surface-variant">radio_button_checked</span>
+                    </div>
+                    <input
+                        type="text"
+                        value={startInput}
+                        onChange={(e) => handleStartSearch(e.target.value)}
+                        onFocus={() => startInput.length >= 2 && setShowStartResults(true)}
+                        placeholder="출발지를 입력하세요"
+                        className="flex-1 bg-transparent text-on-surface placeholder:text-outline text-sm font-medium outline-none"
+                    />
+                    {startInput ? (
+                        <button onClick={() => { setStartInput(''); setSelectedStart(null); setStartResults([]); }} className="text-outline hover:text-on-surface">
+                            <span className="material-symbols-outlined text-sm">close</span>
+                        </button>
+                    ) : (
                         <button
                             onClick={handleUseCurrentLocation}
-                            disabled={isLoadingCurrentLocation}
-                            className="neomorph-btn px-3 flex items-center justify-center whitespace-nowrap text-sm font-semibold disabled:opacity-50 disabled:cursor-wait hover:bg-blue-50 transition-colors"
-                            title="현재 위치 사용"
+                            disabled={isLoadingLocation}
+                            className="text-primary hover:opacity-70 transition-opacity flex items-center gap-1"
                         >
-                            📍 현재위치
+                            {isLoadingLocation
+                                ? <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                                : <span className="material-symbols-outlined text-sm filled">my_location</span>
+                            }
                         </button>
-                        {startInput && (
-                            <button
-                                onClick={clearStart}
-                                className="neomorph-btn p-2 flex items-center justify-center"
-                                aria-label="출발지 초기화"
-                            >
-                                <CloseIcon className="w-4 h-4" />
-                            </button>
-                        )}
-                    </div>
-
-                    {/* Start Results Dropdown */}
-                    {showStartResults && startResults.length > 0 && (
-                        <div className="absolute top-full left-0 right-0 mt-2 neomorph-inset p-3 rounded-lg max-h-60 overflow-y-auto z-20">
-                            {startResults.map((result, idx) => (
-                                <button
-                                    key={idx}
-                                    onClick={() => handleSelectStart(result)}
-                                    className="w-full text-left p-3 hover:bg-blue-50 rounded-lg transition-colors mb-1 last:mb-0"
-                                >
-                                    <div className="font-semibold text-gray-800">{result.name}</div>
-                                    <div className="text-xs text-gray-600">{result.address}</div>
-                                </button>
-                            ))}
-                        </div>
                     )}
+                </div>
 
+                {/* 스왑 버튼 */}
+                <div className="flex items-center px-5 py-1">
+                    <div className="flex-1 h-px bg-outline-variant/10" />
+                    <div className="w-6 h-6 rounded-full border border-outline-variant/30 flex items-center justify-center mx-3">
+                        <span className="material-symbols-outlined text-xs text-on-surface-variant">swap_vert</span>
+                    </div>
+                    <div className="flex-1 h-px bg-outline-variant/10" />
+                </div>
+
+                {/* 목적지 */}
+                <div className="flex items-center px-5 py-4 gap-3">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <span className="material-symbols-outlined text-sm text-primary filled">location_on</span>
+                    </div>
+                    <input
+                        type="text"
+                        value={destInput}
+                        onChange={(e) => handleDestSearch(e.target.value)}
+                        onFocus={() => destInput.length >= 2 && setShowDestResults(true)}
+                        placeholder="목적지를 입력하세요"
+                        className="flex-1 bg-transparent text-on-surface placeholder:text-outline text-sm font-medium outline-none"
+                    />
+                    {destInput && (
+                        <button onClick={() => { setDestInput(''); setSelectedDest(null); setDestResults([]); }} className="text-outline hover:text-on-surface">
+                            <span className="material-symbols-outlined text-sm">close</span>
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            {/* 출발지 검색 결과 (카드 외부 - overflow 클리핑 방지) */}
+            {showStartResults && startResults.length > 0 && (
+                <div className="bg-surface-container-lowest rounded-xl breathe-shadow border border-outline-variant/10 overflow-hidden -mt-3">
+                    {startResults.slice(0, 4).map((r, i) => (
+                        <button key={i} onClick={() => { setSelectedStart(r); setStartInput(r.name); setShowStartResults(false); }}
+                            className="w-full text-left flex items-start gap-3 px-5 py-3 hover:bg-surface-container-low border-b border-outline-variant/10 last:border-0">
+                            <span className="material-symbols-outlined text-sm text-primary mt-0.5">location_on</span>
+                            <div>
+                                <p className="text-sm font-semibold text-on-surface">{r.name}</p>
+                                <p className="text-xs text-on-surface-variant">{r.roadAddress || r.address}</p>
+                            </div>
+                        </button>
+                    ))}
+                </div>
+            )}
+
+            {/* 목적지 검색 결과 (카드 외부 - overflow 클리핑 방지) */}
+            {showDestResults && destResults.length > 0 && (
+                <div className="bg-surface-container-lowest rounded-xl breathe-shadow border border-outline-variant/10 overflow-hidden -mt-3">
+                    {destResults.slice(0, 4).map((r, i) => (
+                        <button key={i} onClick={() => { setSelectedDest(r); setDestInput(r.name); setShowDestResults(false); }}
+                            className="w-full text-left flex items-start gap-3 px-5 py-3 hover:bg-surface-container-low border-b border-outline-variant/10 last:border-0">
+                            <span className="material-symbols-outlined text-sm text-primary mt-0.5">location_on</span>
+                            <div>
+                                <p className="text-sm font-semibold text-on-surface">{r.name}</p>
+                                <p className="text-xs text-on-surface-variant">{r.roadAddress || r.address}</p>
+                            </div>
+                        </button>
+                    ))}
+                </div>
+            )}
+
+            {/* 선택된 출발/도착 표시 */}
+            {(selectedStart || selectedDest) && (
+                <div className="grid grid-cols-2 gap-3">
                     {selectedStart && (
-                        <div className="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
-                            <div className="font-semibold text-blue-900">{selectedStart.name}</div>
-                            <div className="text-xs text-blue-700">{selectedStart.address}</div>
+                        <div className="bg-primary/5 rounded-xl p-3 border border-primary/10">
+                            <p className="text-[10px] font-bold text-primary uppercase tracking-widest mb-0.5">출발</p>
+                            <p className="text-sm font-bold text-on-surface truncate">{selectedStart.name}</p>
                         </div>
                     )}
-                </div>
-            </div>
-
-            {/* Destination */}
-            <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">목적지</label>
-                <div className="relative">
-                    <div className="flex gap-2">
-                        <input
-                            type="text"
-                            value={destInput}
-                            onChange={(e) => handleDestSearch(e.target.value)}
-                            onFocus={() => destInput.length >= 2 && setShowDestResults(true)}
-                            placeholder="목적지를 입력하세요"
-                            className="neomorph-input flex-1"
-                        />
-                        {destInput && (
-                            <button
-                                onClick={clearDest}
-                                className="neomorph-btn p-2 flex items-center justify-center"
-                                aria-label="목적지 초기화"
-                            >
-                                <CloseIcon className="w-4 h-4" />
-                            </button>
-                        )}
-                    </div>
-
-                    {/* Destination Results Dropdown */}
-                    {showDestResults && destResults.length > 0 && (
-                        <div className="absolute top-full left-0 right-0 mt-2 neomorph-inset p-3 rounded-lg max-h-60 overflow-y-auto z-20">
-                            {destResults.map((result, idx) => (
-                                <button
-                                    key={idx}
-                                    onClick={() => handleSelectDest(result)}
-                                    className="w-full text-left p-3 hover:bg-blue-50 rounded-lg transition-colors mb-1 last:mb-0"
-                                >
-                                    <div className="font-semibold text-gray-800">{result.name}</div>
-                                    <div className="text-xs text-gray-600">{result.address}</div>
-                                </button>
-                            ))}
-                        </div>
-                    )}
-
                     {selectedDest && (
-                        <div className="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
-                            <div className="font-semibold text-blue-900">{selectedDest.name}</div>
-                            <div className="text-xs text-blue-700">{selectedDest.address}</div>
+                        <div className="bg-surface-container-low rounded-xl p-3">
+                            <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-0.5">도착</p>
+                            <p className="text-sm font-bold text-on-surface truncate">{selectedDest.name}</p>
                         </div>
                     )}
                 </div>
-            </div>
+            )}
 
-            {/* Search Button */}
+            {/* 경로 찾기 버튼 */}
             <button
                 onClick={handleFindRoute}
                 disabled={!selectedStart || !selectedDest || isSearching}
-                className="neomorph-btn-primary w-full font-bold py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-gradient-to-br from-primary to-primary-dim text-white font-headline font-bold py-4 rounded-xl flex items-center justify-center gap-3 breathe-shadow active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
-                {isSearching ? '검색 중...' : '경로 찾기'}
+                {isSearching
+                    ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    : <span className="material-symbols-outlined">route</span>
+                }
+                <span>{isSearching ? '경로 계산 중...' : '경로 찾기'}</span>
             </button>
         </div>
     );
