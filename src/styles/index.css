@@ -63,16 +63,24 @@ html, body {
   box-shadow: 0 -8px 20px rgba(0, 0, 0, 0.05);
 }
 
-/* Station Marker Pulse */
+/* Station Marker Pulse (Low Availability < 3 bikes) */
 .marker-pulse {
-  box-shadow: 0 0 0 0 rgba(0, 106, 60, 0.4);
-  animation: markerPulse 2s infinite;
+  animation: markerPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 @keyframes markerPulse {
-  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 106, 60, 0.7); }
-  70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(0, 106, 60, 0); }
-  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 106, 60, 0); }
+  0% {
+    filter: drop-shadow(0 0 0 rgba(251, 81, 81, 0.4));
+    opacity: 0.8;
+  }
+  50% {
+    filter: drop-shadow(0 0 8px rgba(251, 81, 81, 0.6));
+    opacity: 1;
+  }
+  100% {
+    filter: drop-shadow(0 0 0 rgba(251, 81, 81, 0.4));
+    opacity: 0.8;
+  }
 }
 
 /* Animate fade-in */
