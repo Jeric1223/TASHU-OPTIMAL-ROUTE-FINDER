@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__stitch__get_screen",
+      "Read(//private/tmp/**)"
+    ]
+  }
+}

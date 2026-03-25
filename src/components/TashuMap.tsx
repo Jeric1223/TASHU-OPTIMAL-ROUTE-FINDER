@@ -28,8 +28,8 @@ const ChangeView: React.FC<{ center: [number, number]; zoom: number }> = ({ cent
 };
 
 const createStationIcon = (count: number, isHighlighted: boolean) => {
-  const primaryColor = count > 0 ? '#2563EB' : '#9CA3AF'; // blue-600 or gray-400
-  const highlightColor = '#FBBF24'; // yellow-400
+  const primaryColor = count > 0 ? '#006a3c' : '#abadb0'; // green or gray
+  const highlightColor = '#77f8ab'; // primary-container
   
   const svg = `
     <svg width="40" height="48" viewBox="0 0 40 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));">
@@ -70,8 +70,8 @@ const destinationIcon = L.divIcon({
 
 const TashuMap: React.FC<TashuMapProps> = ({ stations, center, zoom, userLocation, searchResult, selectedDestination, clickedStationId, onStationClick, onGoToUserLocation, isCentering, route }) => {
   return (
-    <div className="relative mb-4 rounded-xl overflow-hidden shadow-lg border border-gray-200">
-      <MapContainer center={center} zoom={zoom} scrollWheelZoom={true} className="leaflet-container">
+    <div className="relative w-full h-full">
+      <MapContainer center={center} zoom={zoom} scrollWheelZoom={true} zoomControl={false} className="leaflet-container">
         <ChangeView center={center} zoom={zoom} />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
@@ -140,15 +140,6 @@ const TashuMap: React.FC<TashuMapProps> = ({ stations, center, zoom, userLocatio
           </Marker>
         ))}
       </MapContainer>
-      <button
-        onClick={onGoToUserLocation}
-        disabled={isCentering}
-        className="absolute bottom-5 right-5 z-[1000] bg-white p-2.5 rounded-full shadow-lg hover:bg-gray-100 transition-colors disabled:cursor-wait disabled:bg-gray-200 flex items-center justify-center w-11 h-11"
-        aria-label="내 위치로 이동"
-        title="내 위치로 이동"
-      >
-        {isCentering ? <LoadingSpinner /> : <MyLocationIcon />}
-      </button>
     </div>
   );
 };
