@@ -6,7 +6,7 @@ import type { Station, Coordinates, StationWithDistance } from "../types/index";
  */
 export const fetchTashuStations = async (): Promise<Station[]> => {
     try {
-        const response = await fetch("/data/stations.json");
+        const response = await fetch(`${import.meta.env.BASE_URL}data/stations.json`);
 
         if (!response.ok) {
             throw new Error(`정류소 데이터를 불러올 수 없습니다. (HTTP ${response.status})`);
