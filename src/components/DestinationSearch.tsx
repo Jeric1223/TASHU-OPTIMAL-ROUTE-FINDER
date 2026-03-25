@@ -84,14 +84,14 @@ const DestinationSearch: React.FC<DestinationSearchProps> = ({
   const showFinalResult = result && !loading;
 
   return (
-    <div className="fixed inset-0 z-[70] flex flex-col animate-fade-in">
+    <div className="fixed inset-0 z-[70] flex flex-col animate-fade-in pt-safe">
       {/* Dimmed map background */}
       <div className="absolute inset-0 bg-surface/80 backdrop-blur-sm" />
 
       {/* Content */}
       <div className="relative z-10 flex flex-col h-full">
         {/* Header */}
-        <header className="flex items-center px-4 h-14 mt-4 mx-4 bg-white/85 backdrop-blur-xl rounded-full shadow-breathe">
+        <header className="flex items-center px-4 h-14 mt-2 sm:mt-4 mx-4 bg-white/85 backdrop-blur-xl rounded-full shadow-breathe">
           <button
             onClick={onBack}
             className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-low transition-colors text-primary active:scale-95"
