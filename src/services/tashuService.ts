@@ -1,52 +1,19 @@
 import type { Station, Coordinates, StationWithDistance } from "../types/index";
 
 /**
- * Fetches TASHU stations via Vite proxy (dev) or Netlify function (prod)
+ * Fetches TASHU stations from pre-cached static JSON file.
+ * Data is updated every 5 minutes via GitHub Actions.
  */
 export const fetchTashuStations = async (): Promise<Station[]> => {
     try {
-        // @ts-ignore - Vite 환경변수
-        const apiKey = import.meta.env?.VITE_TASHU_API_KEY as string;
-        // @ts-ignore - Vite 환경변수
-        const isDev = import.meta.env?.DEV;
-
-        let response: Response;
-
-        if (isDev) {
-            // 개발 환경: Vite 프록시 사용
-            response = await fetch("/api/tashu/station", {
-                method: "GET",
-                headers: {
-                    "api-token": apiKey || "l1zts202dh534137"
-                }
-            });
-        } else {
-            // 프로덕션: Netlify 함수 사용
-            response = await fetch("/.netlify/functions/tashu-stations", {
-                method: "GET"
-            });
-        }
+        const response = await fetch("/data/stations.json");
 
         if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(
-                `API 요청 실패 (HTTP ${response.status}). 원인: ${errorText}.`
-            );
+            throw new Error(`정류소 데이터를 불러올 수 없습니다. (HTTP ${response.status})`);
         }
 
-        const data = await response.json();
+        const rawStations: any[] = await response.json();
 
-        // 응답 형식 처리: results (타슈 API) 또는 station (Netlify 함수)
-        let rawStations: any[];
-        if (data.results && Array.isArray(data.results)) {
-            rawStations = data.results;
-        } else if (data.station && Array.isArray(data.station)) {
-            rawStations = data.station;
-        } else {
-            throw new Error('API 응답 형식이 올바르지 않습니다.');
-        }
-
-        // 좌표를 숫자로 변환
         const stations: Station[] = rawStations.map((item: any) => ({
             id: item.id,
             name: item.name,
@@ -65,30 +32,6 @@ export const fetchTashuStations = async (): Promise<Station[]> => {
         throw error;
     }
 };
-
-/* export const fetchTashuStations = async (): Promise<Station[]> => {
-    // Use fetch to load the JSON file, as direct import of JSON modules
-    // is not universally supported and can cause resolution errors.
-    const response = await fetch("../tashuMockData.json");
-    if (!response.ok) {
-        throw new Error("타슈 정류장 데이터를 불러오는 데 실패했습니다.");
-    }
-    const RAW_STATIONS = await response.json();
-
-    // The raw data has inconsistent types that need to be cleaned up.
-    const stations: Station[] = (RAW_STATIONS as any[])
-        .map((raw: any) => ({
-            id: String(raw.id),
-            name: raw.name,
-            x_pos: parseFloat(raw.x_pos),
-            y_pos: parseFloat(raw.y_pos),
-            address: raw.address,
-            parking_count: Number(raw.parking_count),
-        }))
-        .filter((station) => station.name && station.address && !isNaN(station.x_pos) && !isNaN(station.y_pos) && !isNaN(station.parking_count)); // Filter out any invalid or incomplete entries
-
-    return stations;
-}; */
 
 /**
  * Calculates the Haversine distance between two points on the Earth.

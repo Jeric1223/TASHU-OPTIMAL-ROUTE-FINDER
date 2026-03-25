@@ -52,13 +52,13 @@ export default defineConfig(({ mode }) => {
                             },
                         },
                         {
-                            urlPattern: /\/.netlify\/functions\/.*/i,
+                            urlPattern: /\/data\/stations\.json/i,
                             handler: 'NetworkFirst',
                             options: {
-                                cacheName: 'api-cache',
+                                cacheName: 'stations-cache',
                                 networkTimeoutSeconds: 10,
                                 expiration: {
-                                    maxEntries: 50,
+                                    maxEntries: 1,
                                     maxAgeSeconds: 60 * 5,
                                 },
                             },
@@ -78,29 +78,10 @@ export default defineConfig(({ mode }) => {
                 "@": path.resolve(__dirname, "./src"),
             },
         },
-        base: "/",
+        base: "/TASHU-OPTIMAL-ROUTE-FINDER/",
         server: {
             host: true,
             port: 5173,
-            proxy: {
-                "/api/tashu": {
-                    target: "https://bikeapp.tashu.or.kr:50041",
-                    changeOrigin: true,
-                    secure: false,
-                    rewrite: (path) => path.replace(/^\/api\/tashu/, "/v1/openapi"),
-                },
-                "/api/kakao": {
-                    target: "https://dapi.kakao.com",
-                    changeOrigin: true,
-                    secure: false,
-                    rewrite: (path) => path.replace(/^\/api\/kakao/, ""),
-                },
-                "/naver": {
-                    target: "https://maps.apigw.ntruss.com/map-geocode/v2/geocode",
-                    changeOrigin: true,
-                    rewrite: (path) => path.replace(/^\/naver/, ""),
-                },
-            },
         },
     }
 })
