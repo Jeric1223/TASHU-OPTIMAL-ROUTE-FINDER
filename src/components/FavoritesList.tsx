@@ -140,7 +140,7 @@ const FavoritesList: React.FC<FavoritesListProps> = ({ onBack, onNavigateToMap, 
             </div>
 
             {/* 하단 네비게이션 */}
-            <nav className="fixed bottom-12 w-full z-50 flex justify-around items-center px-4 pb-safe pt-3 bottom-nav rounded-t-[2rem]">
+            <nav className="fixed bottom-0 w-full z-50 flex justify-around items-center px-4 pb-safe pt-3 bottom-nav rounded-t-[2rem]">
                 <button onClick={onNavigateToMap} className="flex flex-col items-center justify-center gap-0.5 px-4 py-2 rounded-2xl transition-all active:scale-90 text-on-surface-variant hover:text-on-surface">
                     <span className="material-symbols-outlined">explore</span>
                     <span className="text-[10px] font-bold uppercase tracking-wider font-label">지도</span>
