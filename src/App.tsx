@@ -292,7 +292,7 @@ const App: React.FC = () => {
             </header>
 
             {/* ── 지도 컨트롤 (우측) ── */}
-            <div className="fixed right-5 z-40 flex flex-col gap-3" style={{ bottom: showStationSheet ? '540px' : showNearbyCard ? '220px' : '100px' }}>
+            <div className="fixed right-5 z-40 flex flex-col gap-3" style={{ bottom: showStationSheet ? '580px' : showNearbyCard ? '260px' : '140px' }}>
                 <button
                     onClick={loadStations}
                     disabled={isDataLoading}
