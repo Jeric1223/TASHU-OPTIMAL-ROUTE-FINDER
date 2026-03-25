@@ -18,8 +18,8 @@ export default defineConfig(({ mode }) => {
                     name: '타슈 최적 경로 찾기',
                     short_name: 'TASHU',
                     description: '대전시 공공자전거 타슈의 최적 경로를 찾아주는 PWA 앱',
-                    theme_color: '#2563eb',
-                    background_color: '#e0e5ec',
+                    theme_color: '#006a3c',
+                    background_color: '#f5f7fa',
                     display: 'standalone',
                     start_url: '/',
                     icons: [
