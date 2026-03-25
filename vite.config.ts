@@ -21,16 +21,16 @@ export default defineConfig(({ mode }) => {
                     theme_color: '#006a3c',
                     background_color: '#f5f7fa',
                     display: 'standalone',
-                    start_url: '/',
+                    start_url: '/TASHU-OPTIMAL-ROUTE-FINDER/',
                     icons: [
                         {
-                            src: '/icons/icon-192x192.png',
+                            src: '/TASHU-OPTIMAL-ROUTE-FINDER/icons/icon-192x192.png',
                             sizes: '192x192',
                             type: 'image/png',
                             purpose: 'any maskable',
                         },
                         {
-                            src: '/icons/icon-512x512.png',
+                            src: '/TASHU-OPTIMAL-ROUTE-FINDER/icons/icon-512x512.png',
                             sizes: '512x512',
                             type: 'image/png',
                             purpose: 'any maskable',
