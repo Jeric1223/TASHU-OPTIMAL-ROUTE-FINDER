@@ -74,9 +74,9 @@ const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onErr
     return (
         <div className="space-y-5">
             {/* 출발/도착 입력 카드 */}
-            <div className="bg-surface-container-lowest rounded-xl breathe-shadow">
+            <div className="bg-surface-container-lowest rounded-lg breathe-shadow">
                 {/* 출발지 */}
-                <div className="flex items-center px-5 py-4 gap-3 border-b border-outline-variant/10">
+                <div className="flex items-center px-6 py-4 gap-3 border-b border-outline-variant/10">
                     <div className="w-8 h-8 rounded-full bg-surface-container-low flex items-center justify-center flex-shrink-0">
                         <span className="material-symbols-outlined text-sm text-on-surface-variant">radio_button_checked</span>
                     </div>
@@ -107,7 +107,7 @@ const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onErr
                 </div>
 
                 {/* 스왑 버튼 */}
-                <div className="flex items-center px-5 py-1">
+                <div className="flex items-center px-6 py-1">
                     <div className="flex-1 h-px bg-outline-variant/10" />
                     <div className="w-6 h-6 rounded-full border border-outline-variant/30 flex items-center justify-center mx-3">
                         <span className="material-symbols-outlined text-xs text-on-surface-variant">swap_vert</span>
@@ -116,7 +116,7 @@ const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onErr
                 </div>
 
                 {/* 목적지 */}
-                <div className="flex items-center px-5 py-4 gap-3">
+                <div className="flex items-center px-6 py-4 gap-3">
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                         <span className="material-symbols-outlined text-sm text-primary filled">location_on</span>
                     </div>
@@ -138,10 +138,10 @@ const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onErr
 
             {/* 출발지 검색 결과 (카드 외부 - overflow 클리핑 방지) */}
             {showStartResults && startResults.length > 0 && (
-                <div className="bg-surface-container-lowest rounded-xl breathe-shadow border border-outline-variant/10 overflow-hidden -mt-3">
+                <div className="bg-surface-container-lowest rounded-lg breathe-shadow border border-outline-variant/10 overflow-hidden -mt-3">
                     {startResults.slice(0, 4).map((r, i) => (
                         <button key={i} onClick={() => { setSelectedStart(r); setStartInput(r.name); setShowStartResults(false); }}
-                            className="w-full text-left flex items-start gap-3 px-5 py-3 hover:bg-surface-container-low border-b border-outline-variant/10 last:border-0">
+                            className="w-full text-left flex items-start gap-3 px-6 py-3 hover:bg-surface-container-low border-b border-outline-variant/10 last:border-0">
                             <span className="material-symbols-outlined text-sm text-primary mt-0.5">location_on</span>
                             <div>
                                 <p className="text-sm font-semibold text-on-surface">{r.name}</p>
@@ -154,10 +154,10 @@ const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onErr
 
             {/* 목적지 검색 결과 (카드 외부 - overflow 클리핑 방지) */}
             {showDestResults && destResults.length > 0 && (
-                <div className="bg-surface-container-lowest rounded-xl breathe-shadow border border-outline-variant/10 overflow-hidden -mt-3">
+                <div className="bg-surface-container-lowest rounded-lg breathe-shadow border border-outline-variant/10 overflow-hidden -mt-3">
                     {destResults.slice(0, 4).map((r, i) => (
                         <button key={i} onClick={() => { setSelectedDest(r); setDestInput(r.name); setShowDestResults(false); }}
-                            className="w-full text-left flex items-start gap-3 px-5 py-3 hover:bg-surface-container-low border-b border-outline-variant/10 last:border-0">
+                            className="w-full text-left flex items-start gap-3 px-6 py-3 hover:bg-surface-container-low border-b border-outline-variant/10 last:border-0">
                             <span className="material-symbols-outlined text-sm text-primary mt-0.5">location_on</span>
                             <div>
                                 <p className="text-sm font-semibold text-on-surface">{r.name}</p>
@@ -190,7 +190,7 @@ const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onErr
             <button
                 onClick={handleFindRoute}
                 disabled={!selectedStart || !selectedDest || isSearching}
-                className="w-full bg-gradient-to-br from-primary to-primary-dim text-white font-headline font-bold py-4 rounded-xl flex items-center justify-center gap-3 breathe-shadow active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                className="w-full bg-gradient-to-br from-primary to-primary-dim text-white font-headline font-bold py-4 rounded-lg flex items-center justify-center gap-3 breathe-shadow active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
                 {isSearching
                     ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
