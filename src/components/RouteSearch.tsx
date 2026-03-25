@@ -25,8 +25,9 @@ const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onErr
     const [showDestResults, setShowDestResults] = useState(false);
     const [isLoadingLocation, setIsLoadingLocation] = useState(false);
     const [favorites, setFavorites] = useState<FavoriteStation[]>([]);
-    const [showStartFavorites, setShowStartFavorites] = useState(false);
-    const [showDestFavorites, setShowDestFavorites] = useState(false);
+    const [focusedField, setFocusedField] = useState<'start' | 'dest' | null>(null);
+    const [lastFocusedField, setLastFocusedField] = useState<'start' | 'dest' | null>(null);
+    const [showFavorites, setShowFavorites] = useState(true);
 
     useEffect(() => {
         try {
@@ -65,7 +66,13 @@ const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onErr
     const handleStartSearch = async (query: string) => {
         setStartInput(query);
         setSelectedStart(null);
-        if (query.length < 2) { setStartResults([]); setShowStartResults(false); return; }
+        if (query.length < 2) {
+            setStartResults([]);
+            setShowStartResults(false);
+            setShowFavorites(true);
+            return;
+        }
+        setShowFavorites(false);
         try {
             setIsSearching(true);
             const results = await searchKakaoLocation(query);
@@ -77,7 +84,13 @@ const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onErr
     const handleDestSearch = async (query: string) => {
         setDestInput(query);
         setSelectedDest(null);
-        if (query.length < 2) { setDestResults([]); setShowDestResults(false); return; }
+        if (query.length < 2) {
+            setDestResults([]);
+            setShowDestResults(false);
+            setShowFavorites(true);
+            return;
+        }
+        setShowFavorites(false);
         try {
             setIsSearching(true);
             const results = await searchKakaoLocation(query);
@@ -110,9 +123,10 @@ const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onErr
                         value={startInput}
                         onChange={(e) => handleStartSearch(e.target.value)}
                         onFocus={() => {
-                            setShowStartFavorites(true);
-                            if (startInput.length >= 2) setShowStartResults(true);
+                            setFocusedField('start');
+                            setLastFocusedField('start');
                         }}
+                        onBlur={() => setFocusedField(null)}
                         placeholder="출발지를 입력하세요"
                         className="flex-1 bg-transparent text-on-surface placeholder:text-outline text-sm font-medium outline-none"
                     />
@@ -153,9 +167,10 @@ const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onErr
                         value={destInput}
                         onChange={(e) => handleDestSearch(e.target.value)}
                         onFocus={() => {
-                            setShowDestFavorites(true);
-                            if (destInput.length >= 2) setShowDestResults(true);
+                            setFocusedField('dest');
+                            setLastFocusedField('dest');
                         }}
+                        onBlur={() => setFocusedField(null)}
                         placeholder="목적지를 입력하세요"
                         className="flex-1 bg-transparent text-on-surface placeholder:text-outline text-sm font-medium outline-none"
                     />
@@ -167,8 +182,8 @@ const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onErr
                 </div>
             </div>
 
-            {/* 출발지 즐겨찾기 */}
-            {showStartFavorites && favorites.length > 0 && (
+            {/* 즐겨찾기 */}
+            {showFavorites && favorites.length > 0 && (
                 <div className="bg-surface-container-lowest rounded-lg breathe-shadow border border-outline-variant/10 overflow-hidden">
                     <div className="px-6 py-2 border-b border-outline-variant/10">
                         <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">자주 가는 곳</p>
@@ -181,10 +196,15 @@ const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onErr
                                 roadAddress: fav.address,
                                 coords: { latitude: fav.x_pos, longitude: fav.y_pos }
                             };
-                            setSelectedStart(favAsLocation);
-                            setStartInput(fav.name);
-                            setShowStartFavorites(false);
-                            setShowStartResults(false);
+                            if (lastFocusedField === 'start') {
+                                setSelectedStart(favAsLocation);
+                                setStartInput(fav.name);
+                                setShowStartResults(false);
+                            } else if (lastFocusedField === 'dest') {
+                                setSelectedDest(favAsLocation);
+                                setDestInput(fav.name);
+                                setShowDestResults(false);
+                            }
                         }}
                             className="w-full text-left flex items-start gap-3 px-6 py-3 hover:bg-surface-container-low border-b border-outline-variant/10 last:border-0">
                             <span className="material-symbols-outlined text-sm text-primary mt-0.5">favorite</span>
@@ -207,36 +227,6 @@ const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onErr
                             <div>
                                 <p className="text-sm font-semibold text-on-surface">{r.name}</p>
                                 <p className="text-xs text-on-surface-variant">{r.roadAddress || r.address}</p>
-                            </div>
-                        </button>
-                    ))}
-                </div>
-            )}
-
-            {/* 목적지 즐겨찾기 */}
-            {showDestFavorites && favorites.length > 0 && (
-                <div className="bg-surface-container-lowest rounded-lg breathe-shadow border border-outline-variant/10 overflow-hidden">
-                    <div className="px-6 py-2 border-b border-outline-variant/10">
-                        <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">자주 가는 곳</p>
-                    </div>
-                    {favorites.slice(0, 4).map((fav, i) => (
-                        <button key={i} onClick={() => {
-                            const favAsLocation: LocationSearchResult = {
-                                name: fav.name,
-                                address: fav.address,
-                                roadAddress: fav.address,
-                                coords: { latitude: fav.x_pos, longitude: fav.y_pos }
-                            };
-                            setSelectedDest(favAsLocation);
-                            setDestInput(fav.name);
-                            setShowDestFavorites(false);
-                            setShowDestResults(false);
-                        }}
-                            className="w-full text-left flex items-start gap-3 px-6 py-3 hover:bg-surface-container-low border-b border-outline-variant/10 last:border-0">
-                            <span className="material-symbols-outlined text-sm text-primary mt-0.5">favorite</span>
-                            <div>
-                                <p className="text-sm font-semibold text-on-surface">{fav.name}</p>
-                                <p className="text-xs text-on-surface-variant">{fav.address}</p>
                             </div>
                         </button>
                     ))}
