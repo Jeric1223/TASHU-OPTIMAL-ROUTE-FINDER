@@ -281,6 +281,15 @@ const App: React.FC = () => {
                 </div>
             )}
 
+            {/* ── 스테이션 시트 배경 오버레이 (바깥 클릭으로 닫기) ── */}
+            {showStationSheet && (
+                <div
+                    className="fixed inset-0 z-30"
+                    style={{ bottom: '72px' }}
+                    onClick={() => setSelectedStationOnMap(null)}
+                />
+            )}
+
             {/* ── 풀 시트: 지도에서 직접 선택한 정류소 ── */}
             {showStationSheet && (
                 <div className="fixed left-0 right-0 z-40 animate-sheet-up" style={{ bottom: '72px' }}>
