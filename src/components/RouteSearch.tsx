@@ -184,11 +184,11 @@ const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onErr
 
             {/* 즐겨찾기 */}
             {showFavorites && favorites.length > 0 && (
-                <div className="bg-surface-container-lowest rounded-lg breathe-shadow border border-outline-variant/10 overflow-hidden">
+                <div className="bg-surface-container-lowest rounded-lg breathe-shadow border border-outline-variant/10 max-h-[280px] overflow-y-auto">
                     <div className="px-6 py-2 border-b border-outline-variant/10">
                         <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">자주 가는 곳</p>
                     </div>
-                    {favorites.slice(0, 4).map((fav, i) => (
+                    {favorites.map((fav, i) => (
                         <button key={i} onClick={() => {
                             const favAsLocation: LocationSearchResult = {
                                 name: fav.name,
