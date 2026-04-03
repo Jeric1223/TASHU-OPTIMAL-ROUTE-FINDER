@@ -31,8 +31,9 @@ jobs:
         run: |
           mkdir -p public/data
           HTTP_STATUS=$(curl -s -o response.json -w "%{http_code}" \
+            --max-time 30 \
             -H "api-token: $API_TOKEN" \
-            "https://bikeapp.tashu.or.kr:50041/v1/openapi/station")
+            "https://bikeapp.tashu.or.kr:50041/v1/openapi/station" || echo "000")
           echo "HTTP Status: $HTTP_STATUS"
           if [ "$HTTP_STATUS" = "200" ]; then
             # results 배열만 추출하여 저장

@@ -57,46 +57,6 @@ https://kimjaehyeon.github.io/TASHU-OPTIMAL-ROUTE-FINDER/
 
 ---
 
-## 🛠️ 로컬 개발 환경 구축
-
-### 필수 요구사항
-- Node.js 16+
-- npm 또는 yarn
-
-### 설치
-
-```bash
-git clone https://github.com/kimjaehyeon/TASHU-OPTIMAL-ROUTE-FINDER.git
-cd TASHU-OPTIMAL-ROUTE-FINDER
-npm install
-```
-
-### 환경 변수 설정
-
-`.env` 파일 생성:
-
-```env
-VITE_KAKAO_API_KEY=YOUR_KAKAO_API_KEY
-VITE_TASHU_PROXY_URL=https://your-proxy-server.com
-GEMINI_API_KEY=YOUR_GEMINI_API_KEY
-```
-
-### 개발 서버 실행
-
-```bash
-npm run dev
-```
-
-### 프로덕션 빌드
-
-```bash
-npm run build
-npm run preview
-npm run deploy
-```
-
----
-
 ## 📋 사용 방법
 
 ### 1️⃣ 내 주변 정류소 찾기
@@ -117,55 +77,9 @@ npm run deploy
 
 ---
 
-## 🏗️ 기술 스택
-
-- **React 18** - UI 라이브러리
-- **TypeScript** - 타입 안전성
-- **Vite** - 고속 번들러
-- **Tailwind CSS** - 유틸리티 CSS
-- **Leaflet** - 지도 라이브러리
-- **Workbox** - PWA 서비스 워커
-
-### 외부 API
-- 카카오 Maps/Local API
-- 타슈 공개 API
-- 네이버 지도
-
----
-
-## 🎨 디자인 시스템
-
-**Stitch 디자인 시스템** 기반의 Material Design 3
-
-- **Primary Color**: `#006a3c` (타슈 녹색)
-- **Typography**: Plus Jakarta Sans + Manrope
-- **Radius**: 현대적이고 친근한 설계
-
----
-
 ## 📄 라이선스
 
 MIT License - 자유롭게 사용, 수정, 배포 가능
-
----
-
-## 🤝 기여 방법
-
-1. Fork 이 저장소
-2. Feature 브랜치 생성 (`git checkout -b feature/amazing-feature`)
-3. 변경사항 커밋 (`git commit -m 'Add amazing feature'`)
-4. 브랜치 Push (`git push origin feature/amazing-feature`)
-5. Pull Request 열기
-
----
-
-## 🚀 향후 계획
-
-- [ ] 자전거 반납 지점 찾기
-- [ ] 경로 히스토리 저장
-- [ ] 추천 경로 알고리즘 개선
-- [ ] 실시간 정류소 상태 업데이트
-- [ ] 다국어 지원
 
 ---
 
@@ -173,6 +87,12 @@ MIT License - 자유롭게 사용, 수정, 배포 가능
 
 - **Issues**: [GitHub Issues](https://github.com/kimjaehyeon/TASHU-OPTIMAL-ROUTE-FINDER/issues)
 - **Email**: soehd0889@gmail.com
+
+---
+
+## 🔧 개발자 문서
+
+개발 환경 설정, 기술 스택, 아키텍처, 기여 방법 등은 [DEVELOPMENT.md](./DEVELOPMENT.md)를 참고하세요.
 
 ---
 
