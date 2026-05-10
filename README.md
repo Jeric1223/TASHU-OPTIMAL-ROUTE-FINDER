@@ -1,6 +1,9 @@
 # 🚴 TASHU - 타슈 최적 경로 찾기
+<img width="1536" height="1024" alt="997d6879-7496-4d2f-a523-b4327fab1d1c" src="https://github.com/user-attachments/assets/0f7730ce-5d2b-477b-811f-1a84cd6ff14c" />
 
 > 대전시 공공자전거 '타슈'의 가장 가까운 정류소를 찾고, 최적의 경로를 안내하는 PWA 웹 앱
+
+https://velog.io/@hoohoo0889/%EB%8C%80%EC%A0%84-%ED%86%A0%EB%B0%95%EC%9D%B4-%EA%B0%9C%EB%B0%9C%EC%9E%90%EA%B0%80-%ED%83%80%EC%8A%88-%EC%93%B0%EB%8B%A4-%EB%B9%A1%EC%B3%90%EC%84%9C-%EB%A7%8C%EB%93%A0-%EC%95%B1-%EC%84%9C%EB%B2%84-%EB%B9%84%EC%9A%A9-0%EC%9B%90
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Built with React](https://img.shields.io/badge/Built%20with-React%2018-61dafb)](https://react.dev)
