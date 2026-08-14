@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { OptimalRoute } from '../types/index';
 
 interface RouteResultProps {
@@ -59,23 +59,13 @@ const RouteResult: React.FC<RouteResultProps> = ({ route, onClose }) => {
         return () => { cancelled = true; };
     }, [startLat, startLng, endLat, endLng, startName, endName]);
 
-    // 카카오맵 앱 딥링크 → 앱 없으면 웹 URL로 폴백 (주행 시작 버튼)
-    const handleKakaoStart = useCallback(() => {
-        const appUrl = `kakaomap://route?sp=${startLat},${startLng}&ep=${endLat},${endLng}&by=BICYCLE`;
-        const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-        if (!isMobile) { window.open(kakaoWebUrl, '_blank'); return; }
-        const timeout = setTimeout(() => window.open(kakaoWebUrl, '_blank'), 1500);
-        window.location.href = appUrl;
-        window.addEventListener('blur', () => clearTimeout(timeout), { once: true });
-    }, [startLat, startLng, endLat, endLng, kakaoWebUrl]);
-
     // 네이버지도 자전거 경로 URL
     const naverUrl = `https://map.naver.com/p/directions/${startLng},${startLat},${encodeURIComponent(startName)}/${endLng},${endLat},${encodeURIComponent(endName)}/-/bike?c=15.00,0,0,0,dh`;
 
     return (
         <div className="space-y-4 animate-fade-in">
             {/* 경로 요약 카드 */}
-            <div className="bg-surface-container-lowest rounded-lg p-5 breathe-shadow flex items-center justify-between">
+            <div className="bg-white rounded-lg p-5 border border-outline-variant flex items-center justify-between">
                 <div>
                     <div className="flex items-baseline gap-2 mb-1">
                         <span className="font-headline text-4xl font-extrabold tracking-tighter text-primary">
@@ -85,17 +75,17 @@ const RouteResult: React.FC<RouteResultProps> = ({ route, onClose }) => {
                             {route.totalDistance.toFixed(1)}km
                         </span>
                     </div>
-                    <span className="bg-primary/10 text-primary px-3 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase">
+                    <span className="bg-primary-container text-primary px-3 py-0.5 rounded-full text-[11px] font-semibold">
                         최적 경로
                     </span>
                 </div>
-                <div className="w-14 h-14 bg-primary rounded-lg flex items-center justify-center rotate-3 shadow-lg">
-                    <span className="material-symbols-outlined text-white text-2xl filled">directions_bike</span>
+                <div className="w-14 h-14 bg-primary-container rounded-lg flex items-center justify-center">
+                    <span className="material-symbols-outlined text-primary text-2xl filled">directions_bike</span>
                 </div>
             </div>
 
             {/* 상세 경로 */}
-            <div className="bg-surface-container-lowest rounded-lg p-5 breathe-shadow">
+            <div className="bg-white rounded-lg p-5 border border-outline-variant">
                 <h2 className="font-headline text-base font-bold mb-5 flex items-center gap-2 text-on-surface">
                     <span className="material-symbols-outlined text-primary text-lg">route</span>
                     상세 경로
@@ -114,8 +104,8 @@ const RouteResult: React.FC<RouteResultProps> = ({ route, onClose }) => {
                             <div key={idx} className={`flex gap-4 ${isLast ? '' : 'pb-6'} relative`}>
                                 {/* 타임라인 아이콘 */}
                                 <div className="flex flex-col items-center flex-shrink-0">
-                                    <div className={`w-9 h-9 rounded-full flex items-center justify-center z-10 ${
-                                        isWalk ? 'bg-surface-container' : 'bg-primary shadow-md'
+                                    <div className={`w-9 h-9 rounded-full flex items-center justify-center z-10 border ${
+                                        isWalk ? 'bg-surface-container border-outline-variant' : 'bg-primary border-primary'
                                     }`}>
                                         <span className={`material-symbols-outlined text-sm ${isWalk ? 'text-on-surface-variant' : 'text-white'}`}>
                                             {icon}
@@ -138,11 +128,11 @@ const RouteResult: React.FC<RouteResultProps> = ({ route, onClose }) => {
                                     {/* 자전거 구간 - 정류소 정보 */}
                                     {!isWalk && (
                                         <div className="mt-2 bg-surface-container-low rounded-lg p-3 flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm">
+                                            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center border border-outline-variant">
                                                 <span className="material-symbols-outlined text-primary text-sm">directions_bike</span>
                                             </div>
                                             <div>
-                                                <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">대여 가능 자전거</p>
+                                                <p className="text-[11px] font-semibold text-on-surface-variant">대여 가능 자전거</p>
                                                 <p className="text-sm font-extrabold text-primary">{route.startStation.parking_count}대</p>
                                             </div>
                                         </div>
@@ -156,33 +146,33 @@ const RouteResult: React.FC<RouteResultProps> = ({ route, onClose }) => {
 
             {/* 출발/도착 정류소 요약 */}
             <div className="grid grid-cols-2 gap-3">
-                <div className="bg-primary/5 rounded-lg p-4 border border-primary/10">
-                    <p className="text-[10px] font-bold text-primary uppercase tracking-widest mb-1">출발 정류소</p>
+                <div className="bg-primary-container rounded-lg p-4 border border-primary/10">
+                    <p className="text-[11px] font-semibold text-primary mb-1">출발 정류소</p>
                     <p className="font-headline font-bold text-on-surface text-sm leading-tight">{route.startStation.name}</p>
                     <p className="text-primary font-bold text-sm mt-1">{route.startStation.parking_count}대 대여 가능</p>
                 </div>
                 <div className="bg-surface-container-low rounded-lg p-4">
-                    <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">도착 정류소</p>
+                    <p className="text-[11px] font-semibold text-on-surface-variant mb-1">도착 정류소</p>
                     <p className="font-headline font-bold text-on-surface text-sm leading-tight">{route.endStation.name}</p>
                     <p className="text-on-surface-variant font-medium text-xs mt-1">반납 {route.endStation.parking_count}자리</p>
                 </div>
             </div>
 
-            {/* 외부 지도 길찾기 */}
-            <div className="bg-surface-container-lowest rounded-lg p-5 breathe-shadow">
-                <p className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-4">
+            {/* 외부 지도 길찾기 — 색블록/이모지 없이 모노라인 */}
+            <div className="bg-white rounded-lg p-5 border border-outline-variant">
+                <p className="text-xs font-semibold text-on-surface-variant mb-4">
                     외부 지도에서 길찾기
                 </p>
                 <div className="grid grid-cols-2 gap-3">
                     <a href={kakaoWebUrl} target="_blank" rel="noopener noreferrer"
-                        className="flex flex-col items-center gap-2.5 py-4 rounded-lg bg-[#FAE300] hover:opacity-90 transition-opacity active:scale-95">
-                        <span className="text-base">🗺️</span>
-                        <span className="text-[11px] font-bold text-[#3C1E1E]">카카오맵</span>
+                        className="flex items-center justify-center gap-2 py-3.5 rounded-lg border border-outline-variant hover:bg-surface-container-low transition-colors active:scale-95">
+                        <span className="material-symbols-outlined text-base text-primary">near_me</span>
+                        <span className="text-[13px] font-semibold text-on-surface">카카오맵</span>
                     </a>
                     <a href={naverUrl} target="_blank" rel="noopener noreferrer"
-                        className="flex flex-col items-center gap-2.5 py-4 rounded-lg bg-[#03C75A] hover:opacity-90 transition-opacity active:scale-95">
-                        <span className="text-base">🗺️</span>
-                        <span className="text-[11px] font-bold text-white">네이버지도</span>
+                        className="flex items-center justify-center gap-2 py-3.5 rounded-lg border border-outline-variant hover:bg-surface-container-low transition-colors active:scale-95">
+                        <span className="material-symbols-outlined text-base text-primary">near_me</span>
+                        <span className="text-[13px] font-semibold text-on-surface">네이버지도</span>
                     </a>
                 </div>
             </div>
@@ -190,7 +180,7 @@ const RouteResult: React.FC<RouteResultProps> = ({ route, onClose }) => {
             {/* 다시 검색 */}
             {onClose && (
                 <button onClick={onClose}
-                    className="w-full py-3 rounded-lg border border-outline-variant/30 text-on-surface-variant text-sm font-semibold hover:bg-surface-container-low transition-colors flex items-center justify-center gap-2">
+                    className="w-full py-3 rounded-lg border border-outline-variant text-on-surface-variant text-sm font-semibold hover:bg-surface-container-low transition-colors flex items-center justify-center gap-2">
                     <span className="material-symbols-outlined text-sm">arrow_back</span>
                     다른 경로 검색
                 </button>

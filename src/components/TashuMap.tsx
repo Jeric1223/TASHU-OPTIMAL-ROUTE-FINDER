@@ -6,7 +6,6 @@ import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import 'leaflet.markercluster';
 import type { Station, StationWithDistance, Coordinates, OptimalRoute } from '../types';
-import { MyLocationIcon, LoadingSpinner } from './icons';
 
 interface TashuMapProps {
   stations: Station[];
@@ -17,8 +16,6 @@ interface TashuMapProps {
   selectedDestination?: Coordinates | null;
   clickedStationId?: string | null;
   onStationClick: (station: Station) => void;
-  onGoToUserLocation: () => Promise<void>;
-  isCentering: boolean;
   route?: OptimalRoute | null;
 }
 
@@ -45,7 +42,6 @@ const StationsCluster: React.FC<StationsClusterProps> = ({ stations, searchResul
   // 클러스터 아이콘 생성 함수
   const createClusterIcon = (cluster: any) => {
     const childCount = cluster.getChildCount();
-    let clusterColor = '#006a3c'; // 타슈 초록색
     let opacity = 1;
 
     // 개수에 따라 색상 농도 조정
@@ -70,7 +66,6 @@ const StationsCluster: React.FC<StationsClusterProps> = ({ stations, searchResul
         font-weight: bold;
         font-size: 14px;
         border: 2px solid white;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
       ">${childCount}</div>
     `;
 
@@ -116,10 +111,10 @@ const StationsCluster: React.FC<StationsClusterProps> = ({ stations, searchResul
         const marker = L.marker([station.x_pos, station.y_pos], { icon });
         marker.bindPopup(`
           <div class="space-y-1">
-            <div class="text-base font-bold text-gray-800">${station.name}</div>
-            <div class="text-sm text-gray-500">${station.address}</div>
-            <div class="text-sm pt-1 mt-1 border-t border-gray-200">
-              대여 가능: <span class="font-bold text-blue-600 text-base">${station.parking_count}</span> 대
+            <div class="text-base font-bold" style="color:#14171C">${station.name}</div>
+            <div class="text-sm" style="color:#7A828C">${station.address}</div>
+            <div class="text-sm pt-1 mt-1 border-t" style="border-color:#E2E5E9">
+              대여 가능: <span class="font-bold text-base" style="color:#006A3C">${station.parking_count}</span> 대
             </div>
           </div>
         `);
@@ -134,39 +129,40 @@ const StationsCluster: React.FC<StationsClusterProps> = ({ stations, searchResul
 };
 
 const createStationIcon = (count: number, isHighlighted: boolean) => {
-  const primaryColor = count > 0 ? '#0A5C36' : '#abadb0'; // Tashu green or gray
+  const fillColor = count > 0 ? '#006A3C' : '#C7CCD3'; // brand or gray-300
+  const textColor = count > 0 ? '#006A3C' : '#333A44';
 
   const svg = `
-    <svg width="80" height="80" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 4px 8px rgba(0,0,0,0.12));">
-      <!-- 녹색 원형 배경 -->
-      <circle cx="45" cy="65" r="35" fill="${primaryColor}"/>
+    <svg width="64" height="64" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      <!-- 정류소 배지 -->
+      <circle cx="45" cy="65" r="35" fill="${fillColor}"/>
 
       <!-- 자전거 아이콘 (흰색) -->
       <g transform="translate(27, 47) scale(1.5)" fill="white">
         <path d="M15.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM5 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5zm5.8-10l2.4-2.4.8.8c1.3 1.3 3 2.1 5.1 2.1V9c-1.5 0-2.7-.6-3.6-1.5l-1.9-1.9c-.5-.4-1-.6-1.6-.6s-1.1.2-1.4.6L7.8 8.4c-.4.4-.6.9-.6 1.4 0 .6.2 1.1.6 1.4L11 14v5h2v-6.2l-2.2-2.3zM19 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5z"/>
       </g>
 
-      <!-- 숫자 배경 (흰색 라운드 박스) -->
-      <rect x="58" y="20" width="40" height="28" rx="14" fill="white" stroke="${primaryColor}" stroke-width="2"/>
+      <!-- 숫자 배지 (흰색 바탕, 컬러 보더) -->
+      <rect x="58" y="20" width="40" height="28" rx="14" fill="white" stroke="${fillColor}" stroke-width="2"/>
 
       <!-- 숫자 표시 -->
-      <text x="78" y="34" fill="${primaryColor}" font-family="Arial, sans-serif" font-weight="900" font-size="16" text-anchor="middle" dominant-baseline="central">${count}</text>
+      <text x="78" y="34" fill="${textColor}" font-family="Pretendard, Arial, sans-serif" font-weight="700" font-size="16" text-anchor="middle" dominant-baseline="central">${count}</text>
     </svg>
   `;
 
   return L.divIcon({
     html: svg,
-    className: 'leaflet-div-icon',
-    iconSize: [80, 80],
-    iconAnchor: [40, 65],
-    popupAnchor: [0, -65],
+    className: `leaflet-div-icon${isHighlighted ? ' station-icon-highlighted' : ''}`,
+    iconSize: [64, 64],
+    iconAnchor: [32, 52],
+    popupAnchor: [0, -52],
   });
 };
 
 const userLocationIcon = L.divIcon({
     html: `<div class="relative flex items-center justify-center">
-            <div class="absolute w-6 h-6 bg-blue-500 rounded-full animate-ping opacity-75"></div>
-            <div class="relative w-4 h-4 bg-blue-600 rounded-full border-2 border-white shadow-md"></div>
+            <div class="absolute w-9 h-9 bg-[#E8F5EE] rounded-full"></div>
+            <div class="relative w-3.5 h-3.5 bg-[#006A3C] rounded-full border-2 border-white"></div>
         </div>`,
     className: 'leaflet-div-icon',
     iconSize: [24, 24],
@@ -174,14 +170,14 @@ const userLocationIcon = L.divIcon({
 });
 
 const destinationIcon = L.divIcon({
-    html: `<div class="text-red-500 drop-shadow-lg"><svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3v1.5M3 21v-6m0 0 2.77-.693a9 9 0 0 1 6.208.682l.108.054a9 9 0 0 0 6.086.71l3.114-.732a48.524 48.524 0 0 1-.005-10.499l-3.11.732a9 9 0 0 1-6.085-.711l-.108-.054a9 9 0 0 0-6.208-.682L3 4.5M3 15V4.5" /></svg></div>`,
+    html: `<div class="text-gray-900"><svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3v1.5M3 21v-6m0 0 2.77-.693a9 9 0 0 1 6.208.682l.108.054a9 9 0 0 0 6.086.71l3.114-.732a48.524 48.524 0 0 1-.005-10.499l-3.11.732a9 9 0 0 1-6.085-.711l-.108-.054a9 9 0 0 0-6.208-.682L3 4.5M3 15V4.5" /></svg></div>`,
     className: 'leaflet-div-icon',
     iconSize: [32, 32],
     iconAnchor: [4, 32],
 });
 
 
-const TashuMap: React.FC<TashuMapProps> = ({ stations, center, zoom, userLocation, searchResult, selectedDestination, clickedStationId, onStationClick, onGoToUserLocation, isCentering, route }) => {
+const TashuMap: React.FC<TashuMapProps> = ({ stations, center, zoom, userLocation, searchResult, selectedDestination, clickedStationId, onStationClick, route }) => {
   return (
     <div className="relative w-full h-full">
       <MapContainer center={center} zoom={zoom} scrollWheelZoom={true} zoomControl={false} className="leaflet-container">
@@ -202,7 +198,7 @@ const TashuMap: React.FC<TashuMapProps> = ({ stations, center, zoom, userLocatio
             [segment.endPoint.coords.latitude, segment.endPoint.coords.longitude] as [number, number];
 
           const isWalk = segment.type === 'walk';
-          const color = isWalk ? '#6B7280' : '#2563EB';
+          const color = isWalk ? '#9CA3AD' : '#006A3C';
           const weight = isWalk ? 3 : 5;
           const dashArray = isWalk ? '5, 10' : undefined;
 

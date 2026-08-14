@@ -53,23 +53,23 @@ const InstallPrompt: React.FC = () => {
     }
 
     return (
-        <div className="fixed bottom-4 right-4 z-50 animate-fade-in max-w-xs">
-            <div className="neomorph-card p-4 space-y-3">
+        <div className="fixed z-[var(--z-overlay)] animate-fade-in max-w-xs" style={{ bottom: 'calc(var(--nav-h) + 16px)', right: '16px' }}>
+            <div className="bg-white border border-outline-variant rounded-lg p-4 space-y-3">
                 <div>
-                    <h3 className="font-bold text-gray-800 mb-1">앱 설치</h3>
-                    <p className="text-sm text-gray-600">TASHU를 홈화면에 추가하여 더 편하게 사용하세요!</p>
+                    <h3 className="font-headline font-bold text-on-surface mb-1">앱 설치</h3>
+                    <p className="text-sm text-on-surface-variant">타슈를 홈화면에 추가하여 더 편하게 사용하세요</p>
                 </div>
 
                 <div className="flex gap-2">
                     <button
                         onClick={handleDismiss}
-                        className="flex-1 neomorph-btn text-sm py-2 hover:bg-gray-100 transition-colors"
+                        className="flex-1 rounded-lg border border-outline-variant text-sm py-2 text-on-surface-variant hover:bg-surface-container-low transition-colors"
                     >
                         나중에
                     </button>
                     <button
                         onClick={handleInstall}
-                        className="flex-1 neomorph-btn-primary text-sm py-2 font-semibold"
+                        className="flex-1 rounded-lg bg-primary text-white text-sm py-2 font-semibold hover:brightness-95 transition-all"
                     >
                         설치
                     </button>

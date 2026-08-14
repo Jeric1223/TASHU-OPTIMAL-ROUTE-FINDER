@@ -95,4 +95,6 @@ export interface OptimalRoute {
 export interface FavoriteStation extends Station {
     savedAt: string;
     nickname?: string;
+    // localStorage에는 저장되지 않는다. 호출자가 현재 위치 기준으로 채워줄 때만 존재.
+    distance?: number; // distance in kilometers
 }

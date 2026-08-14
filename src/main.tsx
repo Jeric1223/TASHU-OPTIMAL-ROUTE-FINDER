@@ -5,7 +5,7 @@ import App from './App';
 import { registerSW } from 'virtual:pwa-register';
 
 // Register Service Worker for PWA functionality
-const updateSW = registerSW({
+registerSW({
   onNeedRefresh() {
     console.log('새로운 버전이 있습니다.');
     // User can manually refresh or auto-refresh based on preferences

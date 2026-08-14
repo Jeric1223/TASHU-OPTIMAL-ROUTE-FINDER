@@ -25,7 +25,6 @@ const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onErr
     const [showDestResults, setShowDestResults] = useState(false);
     const [isLoadingLocation, setIsLoadingLocation] = useState(false);
     const [favorites, setFavorites] = useState<FavoriteStation[]>([]);
-    const [focusedField, setFocusedField] = useState<'start' | 'dest' | null>(null);
     const [lastFocusedField, setLastFocusedField] = useState<'start' | 'dest' | null>(null);
     const [showFavorites, setShowFavorites] = useState(true);
 
@@ -112,7 +111,7 @@ const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onErr
     return (
         <div className="space-y-5">
             {/* 출발/도착 입력 카드 */}
-            <div className="bg-surface-container-lowest rounded-lg breathe-shadow">
+            <div className="bg-white rounded-lg border border-outline-variant">
                 {/* 출발지 */}
                 <div className="flex items-center px-6 py-4 gap-3 border-b border-outline-variant/10">
                     <div className="w-8 h-8 rounded-full bg-surface-container-low flex items-center justify-center flex-shrink-0">
@@ -122,11 +121,7 @@ const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onErr
                         type="text"
                         value={startInput}
                         onChange={(e) => handleStartSearch(e.target.value)}
-                        onFocus={() => {
-                            setFocusedField('start');
-                            setLastFocusedField('start');
-                        }}
-                        onBlur={() => setFocusedField(null)}
+                        onFocus={() => setLastFocusedField('start')}
                         placeholder="출발지를 입력하세요"
                         className="flex-1 bg-transparent text-on-surface placeholder:text-outline text-sm font-medium outline-none"
                     />
@@ -166,11 +161,7 @@ const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onErr
                         type="text"
                         value={destInput}
                         onChange={(e) => handleDestSearch(e.target.value)}
-                        onFocus={() => {
-                            setFocusedField('dest');
-                            setLastFocusedField('dest');
-                        }}
-                        onBlur={() => setFocusedField(null)}
+                        onFocus={() => setLastFocusedField('dest')}
                         placeholder="목적지를 입력하세요"
                         className="flex-1 bg-transparent text-on-surface placeholder:text-outline text-sm font-medium outline-none"
                     />
@@ -184,9 +175,9 @@ const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onErr
 
             {/* 즐겨찾기 */}
             {showFavorites && favorites.length > 0 && (
-                <div className="bg-surface-container-lowest rounded-lg breathe-shadow border border-outline-variant/10 max-h-[280px] overflow-y-auto">
-                    <div className="px-6 py-2 border-b border-outline-variant/10">
-                        <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">자주 가는 곳</p>
+                <div className="bg-white rounded-lg border border-outline-variant max-h-[280px] overflow-y-auto">
+                    <div className="px-6 py-2 border-b border-outline-variant">
+                        <p className="text-[11px] font-semibold text-on-surface-variant">자주 가는 곳</p>
                     </div>
                     {favorites.map((fav, i) => (
                         <button key={i} onClick={() => {
@@ -219,10 +210,10 @@ const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onErr
 
             {/* 출발지 검색 결과 (카드 외부 - overflow 클리핑 방지) */}
             {showStartResults && startResults.length > 0 && (
-                <div className="bg-surface-container-lowest rounded-lg breathe-shadow border border-outline-variant/10 overflow-hidden -mt-3">
+                <div className="bg-white rounded-lg border border-outline-variant overflow-hidden -mt-3">
                     {startResults.slice(0, 4).map((r, i) => (
                         <button key={i} onClick={() => { setSelectedStart(r); setStartInput(r.name); setShowStartResults(false); }}
-                            className="w-full text-left flex items-start gap-3 px-6 py-3 hover:bg-surface-container-low border-b border-outline-variant/10 last:border-0">
+                            className="w-full text-left flex items-start gap-3 px-6 py-3 hover:bg-surface-container-low border-b border-outline-variant last:border-0">
                             <span className="material-symbols-outlined text-sm text-primary mt-0.5">location_on</span>
                             <div>
                                 <p className="text-sm font-semibold text-on-surface">{r.name}</p>
@@ -235,10 +226,10 @@ const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onErr
 
             {/* 목적지 검색 결과 (카드 외부 - overflow 클리핑 방지) */}
             {showDestResults && destResults.length > 0 && (
-                <div className="bg-surface-container-lowest rounded-lg breathe-shadow border border-outline-variant/10 overflow-hidden -mt-3">
+                <div className="bg-white rounded-lg border border-outline-variant overflow-hidden -mt-3">
                     {destResults.slice(0, 4).map((r, i) => (
                         <button key={i} onClick={() => { setSelectedDest(r); setDestInput(r.name); setShowDestResults(false); }}
-                            className="w-full text-left flex items-start gap-3 px-6 py-3 hover:bg-surface-container-low border-b border-outline-variant/10 last:border-0">
+                            className="w-full text-left flex items-start gap-3 px-6 py-3 hover:bg-surface-container-low border-b border-outline-variant last:border-0">
                             <span className="material-symbols-outlined text-sm text-primary mt-0.5">location_on</span>
                             <div>
                                 <p className="text-sm font-semibold text-on-surface">{r.name}</p>
@@ -253,14 +244,14 @@ const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onErr
             {(selectedStart || selectedDest) && (
                 <div className="grid grid-cols-2 gap-3">
                     {selectedStart && (
-                        <div className="bg-primary/5 rounded-xl p-3 border border-primary/10">
-                            <p className="text-[10px] font-bold text-primary uppercase tracking-widest mb-0.5">출발</p>
+                        <div className="bg-primary-container rounded-xl p-3 border border-primary/10">
+                            <p className="text-[11px] font-semibold text-primary mb-0.5">출발</p>
                             <p className="text-sm font-bold text-on-surface truncate">{selectedStart.name}</p>
                         </div>
                     )}
                     {selectedDest && (
                         <div className="bg-surface-container-low rounded-xl p-3">
-                            <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-0.5">도착</p>
+                            <p className="text-[11px] font-semibold text-on-surface-variant mb-0.5">도착</p>
                             <p className="text-sm font-bold text-on-surface truncate">{selectedDest.name}</p>
                         </div>
                     )}
@@ -271,7 +262,7 @@ const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onErr
             <button
                 onClick={handleFindRoute}
                 disabled={!selectedStart || !selectedDest || isSearching}
-                className="w-full bg-gradient-to-br from-primary to-primary-dim text-white font-headline font-bold py-4 rounded-lg flex items-center justify-center gap-3 breathe-shadow active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                className="w-full bg-primary text-white font-headline font-bold py-4 rounded-lg flex items-center justify-center gap-3 active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
                 {isSearching
                     ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />

@@ -41,12 +41,12 @@ const FavoriteButton: React.FC<FavoriteButtonProps> = ({ station, onToggle }) =>
         <button
             onClick={handleToggle}
             disabled={isLoading}
-            className="neomorph-btn p-2 rounded-full transition-transform hover:scale-110 disabled:opacity-50"
+            className="p-2 rounded-full hover:bg-surface-container-low transition-colors disabled:opacity-50"
             aria-label={isFav ? '즐겨찾기 제거' : '즐겨찾기 추가'}
             title={isFav ? '즐겨찾기 제거' : '즐겨찾기 추가'}
         >
             {isFav ? (
-                <StarFilledIcon className="w-5 h-5 text-yellow-400" />
+                <StarFilledIcon className="w-5 h-5 text-primary" />
             ) : (
                 <StarIcon className="w-5 h-5 text-gray-400" />
             )}

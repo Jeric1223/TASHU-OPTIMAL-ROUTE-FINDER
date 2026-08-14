@@ -4,7 +4,6 @@ import { haversineDistance } from './tashuService';
 // Constants for speed calculations
 const WALK_SPEED = 4; // km/h
 const BIKE_SPEED = 15; // km/h
-const AVERAGE_WALK_TIME = 5; // minutes to reach nearest station from current location
 
 /**
  * Calculate the time required to walk a distance
