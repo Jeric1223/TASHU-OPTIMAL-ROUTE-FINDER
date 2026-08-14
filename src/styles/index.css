@@ -5,19 +5,40 @@
 :root {
   --safe-area-inset-top: env(safe-area-inset-top);
   --safe-area-inset-bottom: env(safe-area-inset-bottom);
-  --primary: #006a3c;
-  --primary-light: #77f8ab;
-  --surface: #f5f7fa;
-  --surface-lowest: #ffffff;
+
+  /* 잠금 팔레트 */
+  --brand: #006A3C;
+  --brand-press: #00542F;
+  --brand-bg: #E8F5EE;
+  --gray-50: #F7F8FA;
+  --gray-100: #EFF1F4;
+  --gray-200: #E2E5E9;
+  --gray-300: #C7CCD3;
+  --gray-400: #9CA3AD;
+  --gray-500: #7A828C;
+  --gray-700: #333A44;
+  --gray-900: #14171C;
+  --danger: #E5484D;
+
+  /* 레이아웃 */
+  --nav-h: 72px;
+  --sheet-h: 88px;
+
+  /* z-index 4단: map < overlay < sheet < nav < modal */
+  --z-map: 0;
+  --z-overlay: 10;
+  --z-sheet: 20;
+  --z-nav: 30;
+  --z-modal: 40;
 }
 
 html, body {
   height: 100%;
   margin: 0;
   padding: 0;
-  font-family: 'Manrope', sans-serif;
-  background: var(--surface);
-  color: #2c2f32;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', system-ui, sans-serif;
+  background: var(--gray-50);
+  color: var(--gray-900);
   overflow: hidden;
 }
 
@@ -41,46 +62,33 @@ html, body {
   font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
 
-/* Glass Panel */
-.glass-panel {
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-}
-
-/* Pill Header */
+/* 글래스모피즘/필-헤더 금지 — 잔여 클래스 참조가 있어도 무효화(블러·그림자 없음) */
+.glass-panel,
 .pill-header {
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  background: rgba(255, 255, 255, 0.85);
-  box-shadow: 0 12px 24px -4px rgba(0, 106, 60, 0.08);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+  background: #ffffff;
 }
 
-/* Bottom Nav */
+/* 하단 내비게이션 — 플랫, 그림자 없음(그림자는 바텀시트에만 1회) */
 .bottom-nav {
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 -8px 20px rgba(0, 0, 0, 0.05);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: #ffffff;
+  border-top: 1px solid var(--gray-200);
+  box-shadow: none;
 }
 
-/* Station Marker Pulse (Low Availability < 3 bikes) */
+/* 정류소 마커 펄스 (대여 가능 대수 0 — danger 색만 사용) */
 .marker-pulse {
   animation: markerPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 @keyframes markerPulse {
-  0% {
-    filter: drop-shadow(0 0 0 rgba(251, 81, 81, 0.4));
-    opacity: 0.8;
-  }
-  50% {
-    filter: drop-shadow(0 0 8px rgba(251, 81, 81, 0.6));
-    opacity: 1;
-  }
-  100% {
-    filter: drop-shadow(0 0 0 rgba(251, 81, 81, 0.4));
-    opacity: 0.8;
-  }
+  0% { filter: drop-shadow(0 0 0 rgba(229, 72, 77, 0.4)); opacity: 0.85; }
+  50% { filter: drop-shadow(0 0 6px rgba(229, 72, 77, 0.55)); opacity: 1; }
+  100% { filter: drop-shadow(0 0 0 rgba(229, 72, 77, 0.4)); opacity: 0.85; }
 }
 
 /* Animate fade-in */
@@ -126,15 +134,16 @@ html, body {
 /* Scrollbar */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gray-400); }
 
 /* No scrollbar utility */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* Breathe shadow */
-.breathe-shadow { box-shadow: 0 12px 24px -4px rgba(0, 106, 60, 0.08); }
+/* 그림자 유틸 — 시트 전용. 다른 곳에서는 사용 금지 */
+.breathe-shadow { box-shadow: none; }
+.sheet-shadow { box-shadow: 0 -4px 24px rgba(20, 23, 28, 0.10); }
 
 /* Safe area */
 .pb-safe { padding-bottom: max(1.5rem, calc(0.5rem + var(--safe-area-inset-bottom))); }
@@ -145,29 +154,30 @@ html, body {
   input, textarea { font-size: 16px; }
 }
 
-/* Legacy utility compatibility */
+/* 레거시 유틸리티 — 그림자 제거, 라운드/보더 토큰 정렬 */
 .station-card {
   background: #ffffff;
-  border-radius: 1rem;
-  box-shadow: 0 12px 24px -4px rgba(0, 106, 60, 0.08);
+  border-radius: 12px;
+  border: 1px solid var(--gray-200);
+  box-shadow: none;
 }
 
 .panel-input {
   width: 100%;
-  background: #f5f7fa;
-  border: 1.5px solid #e5e8ec;
-  border-radius: 1rem;
+  background: var(--gray-50);
+  border: 1.5px solid var(--gray-200);
+  border-radius: 12px;
   padding: 12px 16px;
-  font-family: 'Manrope', sans-serif;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 15px;
-  color: #2c2f32;
+  color: var(--gray-900);
   transition: border-color 0.15s, box-shadow 0.15s;
   outline: none;
 }
 
 .panel-input:focus {
-  border-color: #006a3c;
-  box-shadow: 0 0 0 3px rgba(0, 106, 60, 0.1);
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-bg);
   background: #ffffff;
 }
 
@@ -177,8 +187,9 @@ html, body {
   right: 0;
   top: calc(100% + 4px);
   background: #ffffff;
-  border-radius: 1rem;
-  box-shadow: 0 16px 32px -4px rgba(0, 106, 60, 0.12);
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  box-shadow: none;
   z-index: 50;
   overflow: hidden;
   animation: fadeIn 0.15s ease;
@@ -187,19 +198,19 @@ html, body {
 .search-dropdown-item {
   padding: 12px 16px;
   cursor: pointer;
-  border-bottom: 1px solid #eef1f4;
+  border-bottom: 1px solid var(--gray-100);
   transition: background 0.1s;
   font-size: 14px;
 }
 
 .search-dropdown-item:last-child { border-bottom: none; }
-.search-dropdown-item:hover { background: #eef1f4; }
+.search-dropdown-item:hover { background: var(--gray-50); }
 
 .error-box {
-  background: #fef2f2;
-  border: 1.5px solid #fecaca;
-  border-radius: 1rem;
+  background: #ffffff;
+  border: 1.5px solid var(--danger);
+  border-radius: 12px;
   padding: 12px 16px;
-  color: #b31b25;
+  color: var(--danger);
   font-size: 14px;
 }

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import type { Station, StationWithDistance, Coordinates, LocationSearchResult, OptimalRoute, FavoriteStation } from "./types/index";
 import { getCurrentLocation } from "./services/locationService";
 import { findNearestStation, findNearestAvailableStation, fetchTashuStations, haversineDistance } from "./services/tashuService";
@@ -9,7 +9,7 @@ import RouteResult from "./components/RouteResult";
 import InstallPrompt from "./components/InstallPrompt";
 import TashuMap from "./components/TashuMap";
 import StationCard from "./components/StationCard";
-import NearbySearch from "./components/NearbySearch";
+import Sheet, { SheetSnap } from "./components/Sheet";
 import { searchKakaoLocation } from "./services/kakoApiService";
 import "./styles/index.css";
 
@@ -24,6 +24,7 @@ export enum Tab {
 const App: React.FC = () => {
     const [activeTab, setActiveTab] = useState<Tab>(Tab.Nearby);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [sheetSnap, setSheetSnap] = useState<SheetSnap>('peek');
 
     const [stations, setStations] = useState<Station[]>([]);
     const [isDataLoading, setIsDataLoading] = useState<boolean>(true);
@@ -96,6 +97,18 @@ const App: React.FC = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // 거리순 주변 정류소 목록 (화면 1: 주변 정류소) — tashuService.haversineDistance만 소비, 서비스 로직은 불변.
+    const nearbyStations = useMemo<StationWithDistance[]>(() => {
+        if (!userLocation) return [];
+        return stations
+            .map((s) => ({
+                ...s,
+                distance: haversineDistance(userLocation, { latitude: s.x_pos, longitude: s.y_pos }),
+            }))
+            .sort((a, b) => a.distance - b.distance)
+            .slice(0, 20);
+    }, [stations, userLocation]);
+
     const handleStationSelect = useCallback((station: FavoriteStation) => {
         const stationWithDistance: StationWithDistance = {
             ...station,
@@ -104,6 +117,7 @@ const App: React.FC = () => {
         setSelectedStationOnMap(stationWithDistance);
         setMapCenter([station.x_pos, station.y_pos]);
         setMapZoom(16);
+        setSheetSnap('full');
     }, []);
 
     const handleSetRouteStart = useCallback((station: StationWithDistance) => {
@@ -206,6 +220,7 @@ const App: React.FC = () => {
         setNearbyResult(null);
         setMapCenter([station.x_pos, station.y_pos]);
         setMapZoom(16);
+        if (activeTab === Tab.Nearby) setSheetSnap('full');
     }, [activeTab, userLocation, selectedDestination]);
 
     const handleRouteFound = (route: OptimalRoute) => {
@@ -214,10 +229,10 @@ const App: React.FC = () => {
         setMapZoom(14);
     };
 
-    // 플로팅 카드: nearbyResult = compact, selectedStationOnMap = 풀 시트
-    const showNearbyCard = activeTab === Tab.Nearby && nearbyResult && !selectedStationOnMap;
-    const showStationSheet = activeTab === Tab.Nearby && selectedStationOnMap;
-    const showFloatingCard = showNearbyCard || showStationSheet;
+    const handleCloseStationDetail = useCallback(() => {
+        setSelectedStationOnMap(null);
+        setSheetSnap('half');
+    }, []);
 
     // 데이터 로딩 화면
     if (isDataLoading && stations.length === 0) {
@@ -232,7 +247,7 @@ const App: React.FC = () => {
     if (dataError && stations.length === 0) {
         return (
             <div className="h-screen flex flex-col items-center justify-center bg-surface p-6">
-                <div className="glass-panel bg-white/90 rounded-xl p-8 max-w-sm w-full text-center breathe-shadow">
+                <div className="bg-white border border-outline-variant rounded-xl p-8 max-w-sm w-full text-center">
                     <span className="material-symbols-outlined text-4xl text-error mb-3 block">error</span>
                     <p className="font-headline font-bold text-on-surface text-lg mb-2">데이터 로딩 오류</p>
                     <p className="text-sm text-on-surface-variant mb-5">{dataError}</p>
@@ -251,8 +266,8 @@ const App: React.FC = () => {
 
     return (
         <div className="h-screen w-screen overflow-hidden relative bg-surface">
-            {/* 전체화면 지도 - z-0으로 스태킹 컨텍스트 생성 (Leaflet 내부 z-index 봉쇄) */}
-            <div className="absolute inset-0 z-0">
+            {/* 전체화면 지도 (z-map) */}
+            <div className="absolute inset-0 z-[var(--z-map)]">
                 <TashuMap
                     stations={stations}
                     center={mapCenter}
@@ -262,133 +277,160 @@ const App: React.FC = () => {
                     selectedDestination={selectedDestination}
                     onStationClick={handleStationClick}
                     clickedStationId={selectedStationOnMap?.id}
-                    onGoToUserLocation={handleGoToUserLocation}
-                    isCentering={isCentering}
                     route={currentRoute}
                 />
             </div>
 
-            {/* ── Pill 상단 헤더 ── */}
-            <header className="fixed top-4 left-4 right-4 z-[60] flex items-center h-14 px-3 pill-header rounded-full">
-                <button
-                    onClick={() => setIsSidebarOpen(true)}
-                    className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-low transition-colors text-primary active:scale-95"
-                >
-                    <span className="material-symbols-outlined">menu</span>
-                </button>
-                <div className="flex-1 flex items-center px-2 gap-2">
-                    <span className="text-xl font-headline font-extrabold text-primary tracking-tight">타슈</span>
-                    <div className="h-5 w-px bg-outline-variant/40 mx-1" />
+            {/* ── 상단 검색 트리거 (필-헤더 아님: 플랫, 그림자 없음) ── */}
+            <header className="fixed top-0 inset-x-0 z-[var(--z-overlay)] pt-safe px-4">
+                <div className="flex items-center h-14 mt-3 px-2 gap-1 bg-white rounded-xl border border-outline-variant">
                     <button
-                        className="flex-1 flex items-center gap-2 px-2 py-1 rounded-full hover:bg-surface-container-low transition-colors text-left"
+                        onClick={() => setIsSidebarOpen(true)}
+                        className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-surface-container-low transition-colors text-on-surface active:scale-95"
+                        aria-label="메뉴"
+                    >
+                        <span className="material-symbols-outlined">menu</span>
+                    </button>
+                    <button
+                        className="flex-1 flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-surface-container-low transition-colors text-left"
                         onClick={() => setActiveTab(Tab.Destination)}
                     >
                         <span className="material-symbols-outlined text-outline text-lg">search</span>
                         <span className="text-outline text-sm font-medium">어디로 갈까요?</span>
                     </button>
+                    {isDataLoading && (
+                        <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin mr-2" />
+                    )}
                 </div>
-                {isDataLoading && (
-                    <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin mr-2" />
-                )}
             </header>
 
-            {/* ── 지도 컨트롤 (우측) ── */}
-            <div className="fixed right-5 z-40 flex flex-col gap-3" style={{ bottom: showStationSheet ? '580px' : showNearbyCard ? '260px' : '140px' }}>
+            {/* ── 지도 컨트롤 (우측) — 시트 상단 위에 고정 ── */}
+            <div
+                className="fixed right-4 z-[var(--z-overlay)] flex flex-col gap-3"
+                style={{ bottom: activeTab === Tab.Nearby ? 'calc(var(--nav-h) + var(--sheet-h) + 16px)' : 'calc(var(--nav-h) + 16px)' }}
+            >
                 <button
                     onClick={loadStations}
                     disabled={isDataLoading}
-                    className="w-12 h-12 glass-panel bg-white/90 text-on-surface-variant rounded-full shadow-float flex items-center justify-center border border-white/20 active:scale-90 transition-all disabled:opacity-50"
+                    className="w-11 h-11 bg-white text-on-surface-variant rounded-full flex items-center justify-center border border-outline-variant active:scale-90 transition-all disabled:opacity-50"
                 >
-                    <span className={`material-symbols-outlined ${isDataLoading ? 'animate-spin' : ''}`}>refresh</span>
+                    <span className={`material-symbols-outlined text-[20px] ${isDataLoading ? 'animate-spin' : ''}`}>refresh</span>
                 </button>
                 <button
                     onClick={handleGoToUserLocation}
                     disabled={isCentering}
-                    className="w-14 h-14 glass-panel bg-white/90 text-primary rounded-full shadow-float flex items-center justify-center border border-white/20 active:scale-90 transition-all"
+                    className="w-12 h-12 bg-white text-primary rounded-full flex items-center justify-center border border-outline-variant active:scale-90 transition-all"
                 >
                     <span className="material-symbols-outlined filled">my_location</span>
                 </button>
             </div>
 
-            {/* ── compact 카드: 내 주변 자동 탐색 결과 ── */}
-            {showNearbyCard && (
-                <div className="fixed left-4 right-4 z-40 animate-slide-up" style={{ bottom: '88px' }}>
-                    <StationCard
-                        station={nearbyResult!}
-                        compact
-                        onSetAsStart={handleSetRouteStart}
-                        onSetAsEnd={handleSetRouteEnd}
-                        onCardClick={() => setSelectedStationOnMap(nearbyResult!)}
-                    />
-                </div>
-            )}
-
-            {/* ── 스테이션 시트 배경 오버레이 (바깥 클릭으로 닫기) ── */}
-            {showStationSheet && (
-                <div
-                    className="fixed inset-0 z-30"
-                    style={{ bottom: '72px' }}
-                    onClick={() => setSelectedStationOnMap(null)}
-                />
-            )}
-
-            {/* ── 풀 시트: 지도에서 직접 선택한 정류소 ── */}
-            {showStationSheet && (
-                <div className="fixed left-0 right-0 z-40 animate-sheet-up" style={{ bottom: '72px' }}>
-                    <div className="mx-3 relative">
-                        <button
-                            onClick={() => setSelectedStationOnMap(null)}
-                            className="absolute -top-3 right-3 z-10 w-8 h-8 bg-surface-container-lowest rounded-full shadow-float flex items-center justify-center border border-outline-variant/20"
-                        >
-                            <span className="material-symbols-outlined text-sm text-on-surface-variant">close</span>
-                        </button>
-                        <StationCard
-                            station={selectedStationOnMap!}
-                            onSetAsStart={handleSetRouteStart}
-                            onSetAsEnd={handleSetRouteEnd}
-                            onCardClick={() => setSelectedStationOnMap(null)}
-                        />
-                    </div>
-                </div>
+            {/* ── 화면 1·2: 주변 정류소 목록 + 상세 (단일 Sheet) ── */}
+            {activeTab === Tab.Nearby && (
+                <Sheet
+                    snap={sheetSnap}
+                    onSnapChange={setSheetSnap}
+                    peekContent={
+                        selectedStationOnMap ? null : (
+                            <div className="flex items-center justify-between border-b border-outline-variant pb-3">
+                                <div className="min-w-0">
+                                    <p className="text-[13px] font-semibold text-on-surface-variant">
+                                        {nearbyResult ? '가장 가까운 정류소' : '내 주변 정류소'}
+                                    </p>
+                                    <p className="text-base font-headline font-bold text-on-surface truncate">
+                                        {nearbyResult ? nearbyResult.name : `${nearbyStations.length}곳 검색됨`}
+                                    </p>
+                                </div>
+                                {nearbyResult && (
+                                    <span className="text-2xl font-headline font-black text-primary flex-shrink-0 ml-3">
+                                        {nearbyResult.parking_count}<span className="text-xs font-bold ml-0.5">대</span>
+                                    </span>
+                                )}
+                            </div>
+                        )
+                    }
+                >
+                    {selectedStationOnMap ? (
+                        <div className="relative pt-1">
+                            <button
+                                onClick={handleCloseStationDetail}
+                                className="absolute -top-1 right-0 z-10 w-8 h-8 bg-white rounded-full flex items-center justify-center border border-outline-variant"
+                                aria-label="닫기"
+                            >
+                                <span className="material-symbols-outlined text-sm text-on-surface-variant">close</span>
+                            </button>
+                            <StationCard
+                                station={selectedStationOnMap}
+                                onSetAsStart={handleSetRouteStart}
+                                onSetAsEnd={handleSetRouteEnd}
+                            />
+                        </div>
+                    ) : (
+                        <div>
+                            {nearbyStations.length === 0 && (
+                                <p className="text-sm text-on-surface-variant py-8 text-center">
+                                    {isSearching ? '주변 정류소를 찾는 중...' : '위치 정보를 불러오면 주변 정류소가 표시됩니다.'}
+                                </p>
+                            )}
+                            {nearbyStations.map((s) => (
+                                <button
+                                    key={s.id}
+                                    onClick={() => { setSelectedStationOnMap(s); setSheetSnap('full'); }}
+                                    className="w-full flex items-center justify-between gap-3 py-3 border-b border-outline-variant last:border-0 text-left"
+                                >
+                                    <div className="min-w-0">
+                                        <p className="text-sm font-bold text-on-surface truncate">{s.name}</p>
+                                        <p className="text-xs text-on-surface-variant truncate">{s.address}</p>
+                                    </div>
+                                    <div className="flex items-center gap-3 flex-shrink-0">
+                                        <span className="text-xs text-on-surface-variant">
+                                            {s.distance! < 1 ? `${Math.round(s.distance! * 1000)}m` : `${s.distance!.toFixed(1)}km`}
+                                        </span>
+                                        <span className={`text-sm font-bold ${s.parking_count > 0 ? 'text-primary' : 'text-gray-400'}`}>
+                                            {s.parking_count}대
+                                        </span>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </Sheet>
             )}
 
             {/* ── 내 주변 탭 에러 안내 ── */}
-            {activeTab === Tab.Nearby && searchError && !isSearching && !showFloatingCard && (
-                <div className="fixed left-4 right-4 z-40 animate-slide-up" style={{ bottom: '88px' }}>
-                    <div className="glass-panel bg-white/90 p-4 rounded-xl breathe-shadow flex items-start gap-3">
-                        <span className="material-symbols-outlined text-error text-sm mt-0.5">error</span>
-                        <p className="text-sm text-on-surface-variant">{searchError}</p>
+            {activeTab === Tab.Nearby && searchError && !isSearching && sheetSnap === 'peek' && (
+                <div className="fixed left-4 right-4 z-[var(--z-overlay)] animate-slide-up" style={{ bottom: 'calc(var(--nav-h) + var(--sheet-h) + 12px)' }}>
+                    <div className="error-box flex items-start gap-3">
+                        <span className="material-symbols-outlined text-sm mt-0.5">error</span>
+                        <p className="text-sm">{searchError}</p>
                     </div>
                 </div>
             )}
 
-            {/* ── 하단 내비게이션 바 ── */}
-            <nav className="fixed bottom-0 w-full z-50 flex justify-around items-center px-4 pb-safe pt-3 bottom-nav rounded-t-[2rem]">
-                {/* 내 주변 */}
+            {/* ── 하단 내비게이션 바 (주변/경로/즐겨찾기/더보기) ── */}
+            <nav className="fixed bottom-0 w-full z-[var(--z-nav)] flex justify-around items-center px-4 pb-safe pt-3 bottom-nav" style={{ height: 'var(--nav-h)' }}>
                 <NavTab
                     icon="explore"
-                    label="내 주변"
+                    label="주변"
                     active={activeTab === Tab.Nearby}
                     onClick={() => {
                         setActiveTab(Tab.Nearby);
+                        setSheetSnap('peek');
                         handleNearbySearch();
                     }}
                 />
-                {/* 경로 찾기 */}
                 <NavTab
                     icon="near_me"
-                    label="경로 찾기"
+                    label="경로"
                     active={activeTab === Tab.Route}
                     onClick={() => setActiveTab(Tab.Route)}
                 />
-                {/* 즐겨찾기 */}
                 <NavTab
                     icon="favorite"
                     label="즐겨찾기"
                     active={activeTab === Tab.Favorites}
                     onClick={() => setActiveTab(Tab.Favorites)}
                 />
-                {/* 더보기 */}
                 <NavTab
                     icon="more_horiz"
                     label="더보기"
@@ -413,22 +455,22 @@ const App: React.FC = () => {
 
             {/* ── 경로 탭 오버레이 ── */}
             {activeTab === Tab.Route && (
-                <div className="fixed inset-0 bottom-[88px] z-[70] flex flex-col animate-fade-in pt-safe">
-                    <div className="absolute inset-0 bg-surface/80 backdrop-blur-sm" />
+                <div className="fixed inset-0 z-[70] flex flex-col animate-fade-in pt-safe" style={{ bottom: 'var(--nav-h)' }}>
+                    <div className="absolute inset-0 bg-white" />
                     <div className="relative z-10 flex flex-col h-full">
-                        <header className="flex items-center px-4 h-14 mt-2 sm:mt-4 mx-4 bg-white/85 backdrop-blur-xl rounded-full shadow-breathe">
+                        <header className="flex items-center px-2 h-14 mt-3 mx-4 border-b border-outline-variant">
                             <button
                                 onClick={() => setActiveTab(Tab.Nearby)}
-                                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-low transition-colors text-primary active:scale-95"
+                                className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-surface-container-low transition-colors text-on-surface active:scale-95"
                             >
                                 <span className="material-symbols-outlined">arrow_back</span>
                             </button>
                             <div className="flex-1 flex justify-center">
-                                <h1 className="font-headline font-extrabold text-xl text-primary">경로 찾기</h1>
+                                <h1 className="font-headline font-bold text-lg text-on-surface">경로 찾기</h1>
                             </div>
                             <div className="w-10" />
                         </header>
-                        <div className="flex-1 overflow-y-auto pt-4 px-4 pb-24 sm:pt-6 sm:px-5 sm:pb-safe sm:pb-32 no-scrollbar">
+                        <div className="flex-1 overflow-y-auto pt-4 px-4 pb-8 no-scrollbar">
                             {!currentRoute
                                 ? <RouteSearch
                                     stations={stations}
@@ -458,19 +500,19 @@ const App: React.FC = () => {
             {isSidebarOpen && (
                 <>
                     <div
-                        className="fixed inset-0 z-[80] bg-black/30 backdrop-blur-sm"
+                        className="fixed inset-0 z-[80] bg-gray-900/30"
                         onClick={() => setIsSidebarOpen(false)}
                     />
-                    <div className="fixed top-0 left-0 bottom-0 z-[90] w-72 bg-surface-container-lowest shadow-2xl animate-sidebar-in flex flex-col">
+                    <div className="fixed top-0 left-0 bottom-0 z-[90] w-72 bg-surface-container-lowest border-r border-outline-variant animate-sidebar-in flex flex-col">
                         {/* 사이드바 헤더 */}
-                        <div className="flex items-center justify-between px-5 pt-14 pb-6 border-b border-outline-variant/20">
+                        <div className="flex items-center justify-between px-5 pt-14 pb-6 border-b border-outline-variant">
                             <div>
                                 <h2 className="font-headline font-extrabold text-2xl text-primary">타슈</h2>
                                 <p className="text-xs text-on-surface-variant mt-0.5">대전 공공자전거</p>
                             </div>
                             <button
                                 onClick={() => setIsSidebarOpen(false)}
-                                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-low transition-colors text-on-surface-variant"
+                                className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-surface-container-low transition-colors text-on-surface-variant"
                             >
                                 <span className="material-symbols-outlined">close</span>
                             </button>
@@ -485,7 +527,7 @@ const App: React.FC = () => {
                         </nav>
 
                         {/* 푸터 */}
-                        <div className="px-5 py-6 border-t border-outline-variant/20">
+                        <div className="px-5 py-6 border-t border-outline-variant">
                             <p className="text-xs text-on-surface-variant">
                                 자전거 대수는 약 5분마다 업데이트됩니다. 현장과 다를 수 있어요.
                             </p>
@@ -493,11 +535,6 @@ const App: React.FC = () => {
                     </div>
                 </>
             )}
-
-            {/* ── NearbySearch (숨김 상태로 로직 유지) ── */}
-            <div className="hidden">
-                <NearbySearch onSearch={handleNearbySearch} result={nearbyResult} loading={isSearching} error={searchError} />
-            </div>
 
             <InstallPrompt />
         </div>
@@ -514,14 +551,14 @@ interface NavTabProps {
 const NavTab: React.FC<NavTabProps> = ({ icon, label, active, onClick }) => (
     <button
         onClick={onClick}
-        className={`flex flex-col items-center justify-center gap-0.5 px-4 py-2 rounded-2xl transition-all active:scale-90 ${
+        className={`flex flex-col items-center justify-center gap-0.5 px-4 py-2 rounded-xl transition-all active:scale-90 ${
             active
-                ? 'bg-primary/10 text-primary'
+                ? 'bg-primary-container text-primary'
                 : 'text-on-surface-variant hover:text-on-surface'
         }`}
     >
         <span className={`material-symbols-outlined ${active ? 'filled' : ''}`}>{icon}</span>
-        <span className="text-[10px] font-bold uppercase tracking-wider font-label">{label}</span>
+        <span className="text-[11px] font-semibold font-label">{label}</span>
     </button>
 );
 
@@ -534,7 +571,7 @@ interface SidebarItemProps {
 const SidebarItem: React.FC<SidebarItemProps> = ({ icon, label, onClick }) => (
     <button
         onClick={onClick}
-        className="w-full flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-surface-container-low transition-colors text-on-surface"
+        className="w-full flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-surface-container-low transition-colors text-on-surface"
     >
         <span className="material-symbols-outlined text-on-surface-variant">{icon}</span>
         <span className="font-medium text-sm">{label}</span>

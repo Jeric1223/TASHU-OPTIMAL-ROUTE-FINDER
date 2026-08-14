@@ -85,21 +85,21 @@ const DestinationSearch: React.FC<DestinationSearchProps> = ({
 
   return (
     <div className="fixed inset-0 z-[70] flex flex-col animate-fade-in pt-safe">
-      {/* Dimmed map background */}
-      <div className="absolute inset-0 bg-surface/80 backdrop-blur-sm" />
+      {/* Dimmed map background — 블러 없이 플랫 */}
+      <div className="absolute inset-0 bg-white" />
 
       {/* Content */}
       <div className="relative z-10 flex flex-col h-full">
-        {/* Header */}
-        <header className="flex items-center px-4 h-14 mt-2 sm:mt-4 mx-4 bg-white/85 backdrop-blur-xl rounded-full shadow-breathe">
+        {/* Header — 플랫, 그림자 없음 */}
+        <header className="flex items-center px-2 h-14 mt-3 mx-4 border-b border-outline-variant">
           <button
             onClick={onBack}
-            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-low transition-colors text-primary active:scale-95"
+            className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-surface-container-low transition-colors text-on-surface active:scale-95"
           >
             <span className="material-symbols-outlined">arrow_back</span>
           </button>
           <div className="flex-1 flex justify-center">
-            <h1 className="font-headline font-extrabold text-xl text-primary">타슈</h1>
+            <h1 className="font-headline font-bold text-lg text-on-surface">목적지 검색</h1>
           </div>
           <div className="w-10" />
         </header>
@@ -125,7 +125,7 @@ const DestinationSearch: React.FC<DestinationSearchProps> = ({
                 }}
                 onFocus={() => suggestions.length > 0 && setShowDropdown(true)}
                 placeholder="어디로 갈까요?"
-                className="w-full h-16 pl-14 pr-12 bg-white/85 glass-panel rounded-xl text-base font-semibold text-on-surface placeholder:text-outline border-none focus:outline-none focus:ring-4 focus:ring-primary/10 breathe-shadow transition-all"
+                className="w-full h-16 pl-14 pr-12 bg-white border border-outline-variant rounded-xl text-base font-semibold text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all"
                 autoComplete="off"
               />
               {query && (
@@ -165,7 +165,7 @@ const DestinationSearch: React.FC<DestinationSearchProps> = ({
 
           {showFinalResult ? (
             <div className="animate-slide-up">
-              <p className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-3 px-1">가장 가까운 반납 정류소</p>
+              <p className="text-xs font-semibold text-on-surface-variant mb-3 px-1">가장 가까운 반납 정류소</p>
               <StationCard station={result} />
             </div>
           ) : (

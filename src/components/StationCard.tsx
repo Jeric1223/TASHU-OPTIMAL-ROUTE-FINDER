@@ -32,17 +32,17 @@ const StationCard: React.FC<StationCardProps> = ({ station, compact = false, onS
     if (compact) {
         return (
             <div
-                className="glass-panel bg-white/92 p-5 rounded-lg breathe-shadow border border-white/40 animate-slide-up cursor-pointer hover:bg-white/95 transition-colors"
+                className="bg-white p-5 rounded-lg border border-outline-variant animate-slide-up cursor-pointer hover:bg-surface-container-low transition-colors"
                 onClick={() => onCardClick?.(station)}
             >
                 <div className="flex justify-between items-start mb-3">
                     <div className="space-y-0.5 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                            <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest">
+                            <span className="bg-primary-container text-primary text-[11px] font-semibold px-2 py-0.5 rounded-full">
                                 가장 가까움
                             </span>
                             {distanceText && (
-                                <span className="text-on-surface-variant text-[10px] font-bold uppercase tracking-widest">
+                                <span className="text-on-surface-variant text-[11px] font-semibold">
                                     {distanceText}
                                 </span>
                             )}
@@ -64,9 +64,9 @@ const StationCard: React.FC<StationCardProps> = ({ station, compact = false, onS
                         href={kakaoToUrl(station.name, station.x_pos, station.y_pos)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="bg-[#FAE300] text-[#3C1E1E] font-bold px-4 py-2.5 rounded-lg flex items-center gap-1.5 active:scale-95 transition-all shadow-sm"
+                        className="border border-outline-variant text-on-surface font-semibold px-4 py-2.5 rounded-lg flex items-center gap-1.5 active:scale-95 transition-all hover:bg-surface-container-low"
                     >
-                        <span className="material-symbols-outlined text-sm filled">directions</span>
+                        <span className="material-symbols-outlined text-sm filled text-primary">directions</span>
                         <span className="text-sm">카카오맵</span>
                     </a>
                 </div>
@@ -76,16 +76,16 @@ const StationCard: React.FC<StationCardProps> = ({ station, compact = false, onS
 
     // ── 풀 스테이션 카드 ──
     return (
-        <div className="bg-surface-container-lowest/90 glass-panel p-5 rounded-lg breathe-shadow border border-outline-variant/10 animate-fade-in">
+        <div className="bg-white p-5 rounded-lg border border-outline-variant animate-fade-in">
             {/* 헤더 */}
             <div className="flex justify-between items-start gap-3 mb-4">
                 <div className="flex-1 space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                        <span className="bg-primary-container text-on-primary-container text-[10px] font-bold px-2.5 py-1 rounded-full tracking-wider uppercase">
+                        <span className="bg-primary-container text-on-primary-container text-[11px] font-semibold px-2.5 py-1 rounded-full">
                             운영중
                         </span>
                         {distanceText && (
-                            <span className="text-on-surface-variant text-[10px] font-medium tracking-widest uppercase">
+                            <span className="text-on-surface-variant text-[11px] font-medium">
                                 {distanceText}
                             </span>
                         )}
@@ -105,41 +105,41 @@ const StationCard: React.FC<StationCardProps> = ({ station, compact = false, onS
 
             {/* 통계 그리드 */}
             <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className="bg-primary/5 rounded-lg p-4 flex flex-col items-center border border-primary/10">
+                <div className="bg-primary-container rounded-lg p-4 flex flex-col items-center border border-primary/10">
                     <span className="text-primary font-headline text-4xl font-black mb-0.5">{station.parking_count}</span>
-                    <span className="font-label text-[10px] font-bold text-primary/70 tracking-widest uppercase">대여 가능 자전거</span>
+                    <span className="font-label text-[11px] font-semibold text-primary">대여 가능 자전거</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                     <button
                         onClick={() => onSetAsStart?.(station)}
-                        className="bg-primary/10 text-primary rounded-lg p-3 flex flex-col items-center justify-center hover:bg-primary/15 active:scale-95 transition-all border border-primary/20"
+                        className="bg-primary-container text-primary rounded-lg p-3 flex flex-col items-center justify-center hover:brightness-95 active:scale-95 transition-all border border-primary/20"
                     >
                         <span className="material-symbols-outlined text-lg mb-0.5">place</span>
-                        <span className="font-label text-[9px] font-bold tracking-widest uppercase">시작점</span>
+                        <span className="font-label text-[10px] font-semibold">시작점</span>
                     </button>
                     <button
                         onClick={() => onSetAsEnd?.(station)}
-                        className="bg-primary/10 text-primary rounded-lg p-3 flex flex-col items-center justify-center hover:bg-primary/15 active:scale-95 transition-all border border-primary/20"
+                        className="bg-primary-container text-primary rounded-lg p-3 flex flex-col items-center justify-center hover:brightness-95 active:scale-95 transition-all border border-primary/20"
                     >
                         <span className="material-symbols-outlined text-lg mb-0.5">flag</span>
-                        <span className="font-label text-[9px] font-bold tracking-widest uppercase">도착점</span>
+                        <span className="font-label text-[10px] font-semibold">도착점</span>
                     </button>
                 </div>
             </div>
 
-            {/* 지도 앱 길찾기 버튼들 */}
-            <div className="grid grid-cols-2 gap-3 mb-4">
+            {/* 지도 앱 길찾기 버튼들 — 색블록/이모지 없이 모노라인 */}
+            <div className="grid grid-cols-2 gap-3">
                 <a href={kakaoToUrl(station.name, station.x_pos, station.y_pos)}
                     target="_blank" rel="noopener noreferrer"
-                    className="flex flex-col items-center gap-2 py-4 rounded-lg bg-[#FAE300] hover:opacity-90 active:scale-95 transition-all">
-                    <span className="text-base">🗺️</span>
-                    <span className="text-[10px] font-bold text-[#3C1E1E]">카카오맵</span>
+                    className="flex items-center justify-center gap-2 py-3.5 rounded-lg border border-outline-variant hover:bg-surface-container-low active:scale-95 transition-all">
+                    <span className="material-symbols-outlined text-base text-primary">near_me</span>
+                    <span className="text-[13px] font-semibold text-on-surface">카카오맵</span>
                 </a>
                 <a href={naverUrl(station.name, station.x_pos, station.y_pos)}
                     target="_blank" rel="noopener noreferrer"
-                    className="flex flex-col items-center gap-2 py-4 rounded-lg bg-[#03C75A] hover:opacity-90 active:scale-95 transition-all">
-                    <span className="text-base">🗺️</span>
-                    <span className="text-[10px] font-bold text-white">네이버지도</span>
+                    className="flex items-center justify-center gap-2 py-3.5 rounded-lg border border-outline-variant hover:bg-surface-container-low active:scale-95 transition-all">
+                    <span className="material-symbols-outlined text-base text-primary">near_me</span>
+                    <span className="text-[13px] font-semibold text-on-surface">네이버지도</span>
                 </a>
             </div>
 
