@@ -20,9 +20,9 @@
   framework = "#custom"
   functions = "netlify/functions"
 
-[dev.environment]
-  KAKAO_API_KEY = "90ac67b0c26c6c87dabbab6a2fc54973"
-  TASHU_API_KEY = "l1zts202dh534137"
+# API 키는 이 파일에 두지 않는다. 이 파일은 공개 저장소에 추적된다.
+# 로컬: .env (gitignore 대상) — netlify dev가 자동으로 읽는다.
+# 배포: Netlify 대시보드의 Environment variables, 또는 GitHub Actions 시크릿.
 
 [[headers]]
   for = "/*"

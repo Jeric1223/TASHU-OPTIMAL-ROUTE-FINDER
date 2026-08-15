@@ -40,8 +40,8 @@
 **해결:**
 ```
 1. .env.local 파일 생성
-   - KAKAO_API_KEY=90ac67b0c26c6c87dabbab6a2fc54973
-   - TASHU_API_KEY=l1zts202dh534137
+   - KAKAO_API_KEY=<KAKAO_REST_API_KEY>
+   - TASHU_API_KEY=<TASHU_API_KEY>
 
 2. netlify.toml 업데이트
    - [dev.environment] 섹션 추가
