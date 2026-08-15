@@ -69,23 +69,23 @@ curl "http://localhost:8888/.netlify/functions/kakao-search?query=대전역" | j
 
 ### `.env` 파일 (클라이언트용)
 ```env
-VITE_KAKAO_API_KEY=90ac67b0c26c6c87dabbab6a2fc54973 ✅
-VITE_TASHU_API_KEY=l1zts202dh534137 ✅
+VITE_KAKAO_API_KEY=<KAKAO_REST_API_KEY> ✅
+VITE_TASHU_API_KEY=<TASHU_API_KEY> ✅
 VITE_KAKAO_API_BASE_URL=... ✅
 VITE_API_BASE_URL=... ✅
 ```
 
 ### `.env.local` 파일 (Netlify Functions용) - ✅ 새로 생성
 ```env
-KAKAO_API_KEY=90ac67b0c26c6c87dabbab6a2fc54973 ✅
-TASHU_API_KEY=l1zts202dh534137 ✅
+KAKAO_API_KEY=<KAKAO_REST_API_KEY> ✅
+TASHU_API_KEY=<TASHU_API_KEY> ✅
 ```
 
 ### `netlify.toml` 파일 - ✅ 업데이트됨
 ```toml
 [dev.environment]
-  KAKAO_API_KEY = "90ac67b0c26c6c87dabbab6a2fc54973"
-  TASHU_API_KEY = "l1zts202dh534137"
+  KAKAO_API_KEY = "<KAKAO_REST_API_KEY>"
+  TASHU_API_KEY = "<TASHU_API_KEY>"
 ```
 
 ---
@@ -129,8 +129,8 @@ TASHU_API_KEY=l1zts202dh534137 ✅
 - [ ] Netlify에 연결
 - [ ] 환경 변수 설정:
   ```
-  KAKAO_API_KEY: 90ac67b0c26c6c87dabbab6a2fc54973
-  TASHU_API_KEY: l1zts202dh534137 (선택사항)
+  KAKAO_API_KEY: <KAKAO_REST_API_KEY>
+  TASHU_API_KEY: <TASHU_API_KEY> (선택사항)
   ```
 - [ ] 배포 및 테스트
 
