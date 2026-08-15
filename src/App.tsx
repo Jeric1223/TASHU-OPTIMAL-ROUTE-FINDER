@@ -493,6 +493,7 @@ const App: React.FC = () => {
                     onNavigateToMap={() => setActiveTab(Tab.Nearby)}
                     onNavigateToRoute={() => setActiveTab(Tab.Route)}
                     onStationSelect={handleStationSelect}
+                    userLocation={userLocation}
                 />
             )}
 

@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import type { FavoriteStation } from '../types/index';
+import type { Coordinates, FavoriteStation } from '../types/index';
 import { getFavorites, removeFavorite } from '../services/favoriteService';
+import { haversineDistance } from '../services/tashuService';
 
 interface FavoritesListProps {
     onBack: () => void;
     onNavigateToMap?: () => void;
     onNavigateToRoute?: () => void;
     onStationSelect?: (station: FavoriteStation) => void;
+    /** 거리 표시 기준점. 없으면 거리를 숨긴다. */
+    userLocation?: Coordinates | null;
 }
 
-const FavoritesList: React.FC<FavoritesListProps> = ({ onBack, onNavigateToMap, onNavigateToRoute, onStationSelect }) => {
+const FavoritesList: React.FC<FavoritesListProps> = ({ onBack, onNavigateToMap, onNavigateToRoute, onStationSelect, userLocation }) => {
     const [favorites, setFavorites] = useState<FavoriteStation[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -72,8 +75,13 @@ const FavoritesList: React.FC<FavoritesListProps> = ({ onBack, onNavigateToMap, 
                     ) : (
                         <div className="space-y-3 mb-8">
                             {favorites.map((fav) => {
-                                const distText = fav.distance !== undefined
-                                    ? fav.distance < 1 ? `${Math.round(fav.distance * 1000)}m` : `${fav.distance.toFixed(1)}km`
+                                // 거리는 저장하지 않는다. 저장 시점 위치는 지금 위치와 다르므로
+                                // 항상 현재 위치 기준으로 계산해야 맞는 값이 나온다.
+                                const dist = userLocation
+                                    ? haversineDistance(userLocation, { latitude: fav.x_pos, longitude: fav.y_pos })
+                                    : undefined;
+                                const distText = dist !== undefined
+                                    ? dist < 1 ? `${Math.round(dist * 1000)}m` : `${dist.toFixed(1)}km`
                                     : null;
 
                                 return (

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import type { OptimalRoute } from '../types/index';
 
 interface RouteResultProps {
@@ -59,8 +59,20 @@ const RouteResult: React.FC<RouteResultProps> = ({ route, onClose }) => {
         return () => { cancelled = true; };
     }, [startLat, startLng, endLat, endLng, startName, endName]);
 
+    // 모바일이면 카카오맵 앱을 자전거 모드로 띄우고, 앱이 없으면 웹으로 폴백한다.
+    // 앱 전환에 성공하면 blur가 발생하므로 폴백 타이머를 취소한다.
+    const handleKakaoStart = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
+        const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+        if (!isMobile) return; // 데스크톱은 href의 웹 URL을 그대로 사용
+        e.preventDefault();
+        const appUrl = `kakaomap://route?sp=${startLat},${startLng}&ep=${endLat},${endLng}&by=BICYCLE`;
+        const timeout = setTimeout(() => window.open(kakaoWebUrl, '_blank'), 1500);
+        window.addEventListener('blur', () => clearTimeout(timeout), { once: true });
+        window.location.href = appUrl;
+    }, [startLat, startLng, endLat, endLng, kakaoWebUrl]);
+
     // 네이버지도 자전거 경로 URL
-    const naverUrl = `https://map.naver.com/p/directions/${startLng},${startLat},${encodeURIComponent(startName)}/${endLng},${endLat},${encodeURIComponent(endName)}/-/bike?c=15.00,0,0,0,dh`;
+    const naverUrl =`https://map.naver.com/p/directions/${startLng},${startLat},${encodeURIComponent(startName)}/${endLng},${endLat},${encodeURIComponent(endName)}/-/bike?c=15.00,0,0,0,dh`;
 
     return (
         <div className="space-y-4 animate-fade-in">
@@ -164,7 +176,7 @@ const RouteResult: React.FC<RouteResultProps> = ({ route, onClose }) => {
                     외부 지도에서 길찾기
                 </p>
                 <div className="grid grid-cols-2 gap-3">
-                    <a href={kakaoWebUrl} target="_blank" rel="noopener noreferrer"
+                    <a href={kakaoWebUrl} target="_blank" rel="noopener noreferrer" onClick={handleKakaoStart}
                         className="flex items-center justify-center gap-2 py-3.5 rounded-lg border border-outline-variant hover:bg-surface-container-low transition-colors active:scale-95">
                         <span className="material-symbols-outlined text-base text-primary">near_me</span>
                         <span className="text-[13px] font-semibold text-on-surface">카카오맵</span>
