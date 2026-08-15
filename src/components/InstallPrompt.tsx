@@ -52,8 +52,10 @@ const InstallPrompt: React.FC = () => {
         return null;
     }
 
+    // 화면 하단은 바텀시트·하단탭·지도 컨트롤이 이미 차지하고 있어 겹친다.
+    // 헤더 바로 아래에 띄운다: 안전영역 + 헤더 높이(12+12+56=80px) + 여백 12px.
     return (
-        <div className="fixed z-[var(--z-overlay)] animate-fade-in max-w-xs" style={{ bottom: 'calc(var(--nav-h) + 16px)', right: '16px' }}>
+        <div className="fixed left-4 right-4 z-[var(--z-modal)] animate-fade-in" style={{ top: 'calc(var(--safe-area-inset-top) + 92px)' }}>
             <div className="bg-white border border-outline-variant rounded-lg p-4 space-y-3">
                 <div>
                     <h3 className="font-headline font-bold text-on-surface mb-1">앱 설치</h3>
