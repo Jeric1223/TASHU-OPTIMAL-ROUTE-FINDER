@@ -12,6 +12,9 @@ interface DestinationSearchProps {
   result: StationWithDistance | null;
   loading: boolean;
   error: string | null;
+  /** 결과 카드의 시작점/도착점 버튼. 넘기지 않으면 버튼이 숨겨진다. */
+  onSetAsStart?: (station: StationWithDistance) => void;
+  onSetAsEnd?: (station: StationWithDistance) => void;
 }
 
 const DestinationSearch: React.FC<DestinationSearchProps> = ({
@@ -20,7 +23,9 @@ const DestinationSearch: React.FC<DestinationSearchProps> = ({
     onBack,
     result,
     loading,
-    error
+    error,
+    onSetAsStart,
+    onSetAsEnd
 }) => {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<LocationSearchResult[]>([]);
@@ -166,7 +171,11 @@ const DestinationSearch: React.FC<DestinationSearchProps> = ({
           {showFinalResult ? (
             <div className="animate-slide-up">
               <p className="text-xs font-semibold text-on-surface-variant mb-3 px-1">가장 가까운 반납 정류소</p>
-              <StationCard station={result} />
+              <StationCard
+                station={result}
+                onSetAsStart={onSetAsStart}
+                onSetAsEnd={onSetAsEnd}
+              />
             </div>
           ) : (
             <>

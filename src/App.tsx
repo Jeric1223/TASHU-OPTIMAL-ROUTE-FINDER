@@ -332,10 +332,20 @@ const App: React.FC = () => {
                     onSnapChange={setSheetSnap}
                     peekContent={
                         selectedStationOnMap ? null : (
-                            <div className="flex items-center justify-between border-b border-outline-variant pb-3">
+                            // 리스트 항목과 같은 동작: 눌러서 해당 정류소 상세를 편다.
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    if (nearbyResult) setSelectedStationOnMap(nearbyResult);
+                                    setSheetSnap('full');
+                                }}
+                                className="w-full text-left flex items-center justify-between border-b border-outline-variant pb-3 active:opacity-70 transition-opacity"
+                            >
                                 <div className="min-w-0">
                                     <p className="text-[13px] font-semibold text-on-surface-variant">
-                                        {nearbyResult ? '가장 가까운 정류소' : '내 주변 정류소'}
+                                        {/* findNearestAvailableStation은 parking_count > 0만 남긴다.
+                                            "가장 가까운 정류소"가 아니라 "빌릴 수 있는" 정류소다. */}
+                                        {nearbyResult ? '가장 가까운 대여 가능 정류소' : '내 주변 정류소'}
                                     </p>
                                     <p className="text-base font-headline font-bold text-on-surface truncate">
                                         {nearbyResult ? nearbyResult.name : `${nearbyStations.length}곳 검색됨`}
@@ -346,7 +356,7 @@ const App: React.FC = () => {
                                         {nearbyResult.parking_count}<span className="text-xs font-bold ml-0.5">대</span>
                                     </span>
                                 )}
-                            </div>
+                            </button>
                         )
                     }
                 >
@@ -450,6 +460,8 @@ const App: React.FC = () => {
                     result={destinationResult}
                     loading={isSearching}
                     error={searchError}
+                    onSetAsStart={handleSetRouteStart}
+                    onSetAsEnd={handleSetRouteEnd}
                 />
             )}
 
