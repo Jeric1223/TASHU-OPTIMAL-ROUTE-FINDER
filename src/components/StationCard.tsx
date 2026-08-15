@@ -22,6 +22,7 @@ const naverUrl = (name: string, lat: number, lng: number) =>
 
 
 const StationCard: React.FC<StationCardProps> = ({ station, compact = false, onSetAsStart, onSetAsEnd, onCardClick }) => {
+    const hasRouteActions = Boolean(onSetAsStart || onSetAsEnd);
     const distanceText = station.distance !== undefined
         ? station.distance < 1
             ? `${Math.round(station.distance * 1000)}m 거리`
@@ -103,28 +104,35 @@ const StationCard: React.FC<StationCardProps> = ({ station, compact = false, onS
                 <FavoriteButton station={station} />
             </div>
 
-            {/* 통계 그리드 */}
-            <div className="grid grid-cols-2 gap-3 mb-4">
+            {/* 통계 그리드 — 경로 지정 콜백이 없으면 버튼을 아예 그리지 않는다.
+                누를 수는 있는데 아무 일도 안 일어나는 버튼을 남기지 않기 위함. */}
+            <div className={`grid gap-3 mb-4 ${hasRouteActions ? 'grid-cols-2' : 'grid-cols-1'}`}>
                 <div className="bg-primary-container rounded-lg p-4 flex flex-col items-center border border-primary/10">
                     <span className="text-primary font-headline text-4xl font-black mb-0.5">{station.parking_count}</span>
                     <span className="font-label text-[11px] font-semibold text-primary">대여 가능 자전거</span>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                    <button
-                        onClick={() => onSetAsStart?.(station)}
-                        className="bg-primary-container text-primary rounded-lg p-3 flex flex-col items-center justify-center hover:brightness-95 active:scale-95 transition-all border border-primary/20"
-                    >
-                        <span className="material-symbols-outlined text-lg mb-0.5">place</span>
-                        <span className="font-label text-[10px] font-semibold">시작점</span>
-                    </button>
-                    <button
-                        onClick={() => onSetAsEnd?.(station)}
-                        className="bg-primary-container text-primary rounded-lg p-3 flex flex-col items-center justify-center hover:brightness-95 active:scale-95 transition-all border border-primary/20"
-                    >
-                        <span className="material-symbols-outlined text-lg mb-0.5">flag</span>
-                        <span className="font-label text-[10px] font-semibold">도착점</span>
-                    </button>
-                </div>
+                {hasRouteActions && (
+                    <div className="grid grid-cols-2 gap-2">
+                        {onSetAsStart && (
+                            <button
+                                onClick={() => onSetAsStart(station)}
+                                className="bg-primary-container text-primary rounded-lg p-3 flex flex-col items-center justify-center hover:brightness-95 active:scale-95 transition-all border border-primary/20"
+                            >
+                                <span className="material-symbols-outlined text-lg mb-0.5">place</span>
+                                <span className="font-label text-[10px] font-semibold">시작점</span>
+                            </button>
+                        )}
+                        {onSetAsEnd && (
+                            <button
+                                onClick={() => onSetAsEnd(station)}
+                                className="bg-primary-container text-primary rounded-lg p-3 flex flex-col items-center justify-center hover:brightness-95 active:scale-95 transition-all border border-primary/20"
+                            >
+                                <span className="material-symbols-outlined text-lg mb-0.5">flag</span>
+                                <span className="font-label text-[10px] font-semibold">도착점</span>
+                            </button>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* 지도 앱 길찾기 버튼들 — 색블록/이모지 없이 모노라인 */}
