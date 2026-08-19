@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import type { OptimalRoute } from '../types/index';
+import { loadKakaoSdk } from '../services/kakaoSdkLoader';
 
 interface RouteResultProps {
     route: OptimalRoute;
@@ -7,17 +8,29 @@ interface RouteResultProps {
 }
 
 // WGS84 → WCONGNAMUL 변환 (카카오맵 URL rt 파라미터용)
+// JS SDK의 Geocoder를 사용한다. 변환 실패 시 null을 반환하면
+// 호출부가 기본 카카오맵 링크로 그대로 폴백한다.
 const toWcong = async (lng: number, lat: number): Promise<{ x: number; y: number } | null> => {
-    const key = import.meta.env?.VITE_KAKAO_API_KEY as string;
     try {
-        const res = await fetch(
-            `https://dapi.kakao.com/v2/local/geo/transcoord.json?x=${lng}&y=${lat}&input_coord=WGS84&output_coord=WCONGNAMUL`,
-            { headers: { Authorization: `KakaoAK ${key}` } }
-        );
-        const data = await res.json();
-        const doc = data?.documents?.[0];
-        if (!doc) return null;
-        return { x: Math.round(doc.x), y: Math.round(doc.y) };
+        const kakao = await loadKakaoSdk();
+        return await new Promise((resolve) => {
+            const geocoder = new kakao.maps.services.Geocoder();
+            geocoder.transCoord(
+                lng,
+                lat,
+                (result, status) => {
+                    if (status !== kakao.maps.services.Status.OK || !result[0]) {
+                        resolve(null);
+                        return;
+                    }
+                    resolve({ x: Math.round(result[0].x), y: Math.round(result[0].y) });
+                },
+                {
+                    input_coord: kakao.maps.services.Coords.WGS84,
+                    output_coord: kakao.maps.services.Coords.WCONGNAMUL,
+                }
+            );
+        });
     } catch {
         return null;
     }
