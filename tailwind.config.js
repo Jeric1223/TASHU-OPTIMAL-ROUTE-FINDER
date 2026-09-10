@@ -46,10 +46,10 @@ export default {
         },
       },
       fontFamily: {
-        headline: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-        body: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-        label: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-        sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        headline: ['Pretendard Variable', 'Pretendard', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        body: ['Pretendard Variable', 'Pretendard', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        label: ['Pretendard Variable', 'Pretendard', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        sans: ['Pretendard Variable', 'Pretendard', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
       },
       borderRadius: {
         DEFAULT: '12px',
