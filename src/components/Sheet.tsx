@@ -12,18 +12,30 @@ interface SheetProps {
 const PEEK_PX = 88;
 const DRAG_THRESHOLD_PX = 6;
 
+// 상단 안전영역(상태바) px. env()는 JS에서 바로 읽을 수 없어 probe 요소로 잰다.
+const safeAreaTopPx = (): number => {
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;top:0;height:var(--safe-area-inset-top);visibility:hidden;pointer-events:none';
+    document.body.appendChild(probe);
+    const px = probe.offsetHeight;
+    probe.remove();
+    return px;
+};
+
 // 스냅 상태 → 시트 높이(px). half/full은 뷰포트 크기에 따라 달라지므로 런타임 계산.
+// full은 탭바(--nav-h, 하단 안전영역 포함) 실측 높이와 상태바를 모두 빼야
+// 홈 화면 앱에서 시트가 상태바를 덮지 않는다. (고정 72px은 안전영역을 몰라 34px만큼 더 올라갔다)
 const snapHeightPx = (snap: SheetSnap): number => {
     const vh = window.innerHeight;
-    const navH = 72;
     if (snap === 'peek') return PEEK_PX;
     if (snap === 'half') return Math.round(vh * 0.44);
-    return Math.max(vh - navH - 64, PEEK_PX);
+    const navH = document.querySelector<HTMLElement>('nav.bottom-nav')?.offsetHeight ?? 72;
+    return Math.max(vh - navH - safeAreaTopPx() - 64, PEEK_PX);
 };
 
 const Sheet: React.FC<SheetProps> = ({ snap, onSnapChange, peekContent, children }) => {
     const sheetRef = useRef<HTMLDivElement>(null);
-    const dragState = useRef<{ startY: number; startHeight: number; moved: boolean } | null>(null);
+    const dragState = useRef<{ startY: number; startHeight: number; maxHeight: number; moved: boolean } | null>(null);
 
     const applyHeight = useCallback((px: number) => {
         document.documentElement.style.setProperty('--sheet-h', `${px}px`);
@@ -59,6 +71,8 @@ const Sheet: React.FC<SheetProps> = ({ snap, onSnapChange, peekContent, children
         dragState.current = {
             startY: e.clientY,
             startHeight: snapHeightPx(snap),
+            // 드래그 중 매 move마다 DOM을 재지 않도록 시작 시점에 한 번만 계산
+            maxHeight: snapHeightPx('full'),
             moved: false,
         };
     };
@@ -69,7 +83,7 @@ const Sheet: React.FC<SheetProps> = ({ snap, onSnapChange, peekContent, children
         if (Math.abs(dy) > DRAG_THRESHOLD_PX) dragState.current.moved = true;
         const nextHeight = Math.min(
             Math.max(dragState.current.startHeight + dy, PEEK_PX),
-            snapHeightPx('full')
+            dragState.current.maxHeight
         );
         applyHeight(nextHeight);
     };
