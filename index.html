@@ -18,50 +18,57 @@
     <meta property="og:description" content="대전시 공공자전거 타슈의 최적 경로를 찾아보세요" />
     <meta property="og:image" content="/TASHU-OPTIMAL-ROUTE-FINDER/icons/icon-512x512.png" />
 
-    <!-- Fonts -->
-    <link rel="preload" as="style" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@latest/dist/web/static/pretendard.css" onload="this.onload=null;this.rel='stylesheet'" />
-    <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@latest/dist/web/static/pretendard.css" /></noscript>
+    <!-- Fonts: Pretendard Variable + 동적 서브셋 (실제 쓰는 글자 범위만 받음) -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
-
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 
     <!-- Custom Styles -->
     <style>
-      /* Leaflet 지도 전체화면 */
-      .leaflet-container {
-        width: 100%;
-        height: 100%;
-        border-radius: 0;
+      /* 타이포 기본값 — 가변 폰트 + 자간 정리 */
+      html {
+        font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
       }
 
-      .leaflet-popup-content-wrapper {
+      /* 숫자 폭 고정 — 대여 가능 대수가 갱신될 때 레이아웃이 흔들리지 않게 */
+      body {
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* 큰 글자는 자간을 좁혀야 덩어리로 읽힌다 */
+      h1, h2, h3 {
+        letter-spacing: -0.022em;
+      }
+
+      /* MapLibre 팝업 — 그림자 없이 1px 보더로 (그림자는 바텀시트에만 허용) */
+      .maplibregl-popup-content {
           background: #ffffff;
           color: #14171c;
           border-radius: 12px;
           box-shadow: none;
           border: 1px solid #e2e5e9;
-      }
-      .leaflet-popup-content {
-          margin: 12px 16px;
-          font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+          padding: 12px 16px;
+          font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, sans-serif;
           min-width: 200px;
       }
-      .leaflet-popup-tip {
-          background: #ffffff;
-      }
-      .leaflet-popup-close-button {
-          color: #9ca3af !important;
-          padding: 4px;
+      .maplibregl-popup-anchor-top .maplibregl-popup-tip { border-bottom-color: #e2e5e9; }
+      .maplibregl-popup-anchor-bottom .maplibregl-popup-tip { border-top-color: #e2e5e9; }
+      .maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: #e2e5e9; }
+      .maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: #e2e5e9; }
+      .maplibregl-popup-close-button {
+          color: #9ca3af;
+          font-size: 18px;
+          line-height: 1;
+          padding: 4px 8px;
           border-radius: 9999px;
+          background: transparent;
       }
-      .leaflet-popup-close-button:hover {
+      .maplibregl-popup-close-button:hover {
           background-color: #f3f4f6;
-          color: #374151 !important;
-      }
-      .leaflet-div-icon {
-        background: transparent;
-        border: none;
+          color: #374151;
       }
 
       html, body {
@@ -78,8 +85,8 @@
         overflow: hidden;
       }
     </style>
-    <script type="module" crossorigin src="/TASHU-OPTIMAL-ROUTE-FINDER/assets/index-Bra4L0xP.js"></script>
-    <link rel="stylesheet" crossorigin href="/TASHU-OPTIMAL-ROUTE-FINDER/assets/index-BX8lTToS.css">
+    <script type="module" crossorigin src="/TASHU-OPTIMAL-ROUTE-FINDER/assets/index-D5HFVTyx.js"></script>
+    <link rel="stylesheet" crossorigin href="/TASHU-OPTIMAL-ROUTE-FINDER/assets/index-D4GI_vXZ.css">
   <link rel="manifest" href="/TASHU-OPTIMAL-ROUTE-FINDER/manifest.webmanifest"></head>
   <body>
     <div id="root"></div>
