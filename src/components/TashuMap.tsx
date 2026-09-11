@@ -384,7 +384,9 @@ const TashuMap: React.FC<TashuMapProps> = ({
         <div class="absolute w-9 h-9 bg-[#E8F5EE] rounded-full"></div>
         <div class="relative w-3.5 h-3.5 bg-[#006A3C] rounded-full border-2 border-white"></div>
       `;
+      // addTo()가 즉시 좌표를 투영하므로 setLngLat이 먼저여야 한다 (없으면 'lng' TypeError)
       userMarkerRef.current = new maplibregl.Marker({ element: el })
+        .setLngLat([userLocation.longitude, userLocation.latitude])
         .setPopup(new maplibregl.Popup({ offset: 16 }).setText('현재 내 위치'))
         .addTo(map);
     }
@@ -406,6 +408,7 @@ const TashuMap: React.FC<TashuMapProps> = ({
       el.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3v1.5M3 21v-6m0 0 2.77-.693a9 9 0 0 1 6.208.682l.108.054a9 9 0 0 0 6.086.71l3.114-.732a48.524 48.524 0 0 1-.005-10.499l-3.11.732a9 9 0 0 1-6.085-.711l-.108-.054a9 9 0 0 0-6.208-.682L3 4.5M3 15V4.5" /></svg>`;
       // Leaflet iconAnchor [4,32] ↔ 이미지 중심(16,16) 차이
       destMarkerRef.current = new maplibregl.Marker({ element: el, offset: [12, -16] })
+        .setLngLat([selectedDestination.longitude, selectedDestination.latitude])
         .setPopup(new maplibregl.Popup({ offset: 16 }).setText('선택한 목적지'))
         .addTo(map);
     }
