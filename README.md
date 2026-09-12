@@ -3,6 +3,11 @@
 
 > 대전시 공공자전거 '타슈'의 가장 가까운 정류소를 찾고, 최적의 경로를 안내하는 PWA 웹 앱
 
+[![정류소 지도 화면](./docs/hero.jpg)](./docs/hero.jpg)
+
+> 지도 위 각 정류소의 실시간 잔여 대수를 보여주는 메인 화면
+
+
 https://velog.io/@hoohoo0889/%EB%8C%80%EC%A0%84-%ED%86%A0%EB%B0%95%EC%9D%B4-%EA%B0%9C%EB%B0%9C%EC%9E%90%EA%B0%80-%ED%83%80%EC%8A%88-%EC%93%B0%EB%8B%A4-%EB%B9%A1%EC%B3%90%EC%84%9C-%EB%A7%8C%EB%93%A0-%EC%95%B1-%EC%84%9C%EB%B2%84-%EB%B9%84%EC%9A%A9-0%EC%9B%90
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
