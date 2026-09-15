@@ -62,6 +62,7 @@ jobs:
       - name: Build
         env:
           VITE_KAKAO_JS_KEY: ${{ secrets.VITE_KAKAO_JS_KEY }}
+          VITE_VWORLD_KEY: ${{ secrets.VITE_VWORLD_KEY }}
         run: npm run build
 
       - name: Deploy to GitHub Pages
