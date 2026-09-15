@@ -43,6 +43,7 @@ const App: React.FC = () => {
     const [mapZoom, setMapZoom] = useState<number>(13);
     const [userLocation, setUserLocation] = useState<Coordinates | null>(null);
     const [isCentering, setIsCentering] = useState<boolean>(false);
+    const [isFindingNearest, setIsFindingNearest] = useState<boolean>(false);
     const [currentRoute, setCurrentRoute] = useState<OptimalRoute | null>(null);
 
     const [routeStartStation, setRouteStartStation] = useState<LocationSearchResult | null>(null);
@@ -206,6 +207,32 @@ const App: React.FC = () => {
         }
     }, []);
 
+    // 지도 버튼: 지금 위치에서 가장 가까운 "대여 가능" 정류소로 이동해 상세를 half로 연다.
+    // 사용자가 이동했을 수 있으므로 위치는 매번 새로 받는다.
+    const handleGoToNearestStation = useCallback(async () => {
+        setIsFindingNearest(true);
+        try {
+            const userCoords = await getCurrentLocation();
+            setUserLocation(userCoords);
+            const nearest = findNearestAvailableStation(userCoords, stations);
+            if (!nearest) {
+                setSearchError("현재 위치 근처에 대여 가능한 타슈가 있는 정류소가 없습니다.");
+                setTimeout(() => setSearchError(null), 3000);
+                return;
+            }
+            setActiveTab(Tab.Nearby);
+            setNearbyResult(nearest);
+            setSelectedStationOnMap(nearest);
+            setMapCenter([nearest.x_pos, nearest.y_pos]);
+            setMapZoom(16);
+            setSheetSnap('half');
+        } catch (err) {
+            setSearchError(err instanceof Error ? err.message : "위치 정보 접근 권한이 거부되었습니다.");
+        } finally {
+            setIsFindingNearest(false);
+        }
+    }, [stations]);
+
     const handleStationClick = useCallback((station: Station) => {
         let referenceCoords: Coordinates | null = null;
         if (activeTab === Tab.Nearby && userLocation) referenceCoords = userLocation;
@@ -325,6 +352,14 @@ const App: React.FC = () => {
                     className="w-12 h-12 liquid-glass text-on-surface-variant rounded-full flex items-center justify-center active:scale-90 transition-all disabled:opacity-50"
                 >
                     <span className={`material-symbols-outlined ${isDataLoading ? 'animate-spin' : ''}`}>refresh</span>
+                </button>
+                <button
+                    onClick={handleGoToNearestStation}
+                    disabled={isFindingNearest}
+                    aria-label="가장 가까운 대여 가능 정류소"
+                    className="w-12 h-12 liquid-glass text-primary rounded-full flex items-center justify-center active:scale-90 transition-all disabled:opacity-50"
+                >
+                    <span className="material-symbols-outlined">route</span>
                 </button>
                 <button
                     onClick={handleGoToUserLocation}
