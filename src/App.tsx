@@ -9,7 +9,7 @@ import RouteResult from "./components/RouteResult";
 import InstallPrompt from "./components/InstallPrompt";
 import TashuMap from "./components/TashuMap";
 import StationCard from "./components/StationCard";
-import Sheet, { SheetSnap } from "./components/Sheet";
+import Sheet, { SheetSnap, snapHeightPx } from "./components/Sheet";
 import { searchKakaoLocation } from "./services/kakoApiService";
 import "./styles/index.css";
 
@@ -117,7 +117,7 @@ const App: React.FC = () => {
         setSelectedStationOnMap(stationWithDistance);
         setMapCenter([station.x_pos, station.y_pos]);
         setMapZoom(16);
-        setSheetSnap('full');
+        setSheetSnap('half');
     }, []);
 
     const handleSetRouteStart = useCallback((station: StationWithDistance) => {
@@ -220,7 +220,8 @@ const App: React.FC = () => {
         setNearbyResult(null);
         setMapCenter([station.x_pos, station.y_pos]);
         setMapZoom(16);
-        if (activeTab === Tab.Nearby) setSheetSnap('full');
+        // 상세는 half로 연다 — full이면 방금 누른 정류소와 지도가 시트에 가려진다
+        if (activeTab === Tab.Nearby) setSheetSnap('half');
     }, [activeTab, userLocation, selectedDestination]);
 
     const handleRouteFound = (route: OptimalRoute) => {
@@ -229,9 +230,10 @@ const App: React.FC = () => {
         setMapZoom(14);
     };
 
-    const handleCloseStationDetail = useCallback(() => {
+    // 지도 빈 곳 탭: 정류소 상세를 닫고 시트를 끝까지 내려 지도를 다시 보여준다
+    const handleMapBackgroundClick = useCallback(() => {
         setSelectedStationOnMap(null);
-        setSheetSnap('half');
+        setSheetSnap('peek');
     }, []);
 
     // 데이터 로딩 화면
@@ -276,14 +278,21 @@ const App: React.FC = () => {
                     searchResult={nearbyResult || destinationResult}
                     selectedDestination={selectedDestination}
                     onStationClick={handleStationClick}
+                    onMapClick={handleMapBackgroundClick}
                     clickedStationId={selectedStationOnMap?.id}
                     route={currentRoute}
+                    coveredInsets={{
+                        // 상단 검색바(안전영역 포함)와 하단 탭바+시트가 지도를 덮는 높이. 마운트 전엔 기본값.
+                        top: document.querySelector<HTMLElement>('header')?.offsetHeight ?? 68,
+                        bottom: (document.querySelector<HTMLElement>('nav.bottom-nav')?.offsetHeight ?? 72)
+                            + (activeTab === Tab.Nearby ? snapHeightPx(sheetSnap) : 0),
+                    }}
                 />
             </div>
 
             {/* ── 상단 검색 트리거 (필-헤더 아님: 플랫, 그림자 없음) ── */}
             <header className="fixed top-0 inset-x-0 z-[var(--z-overlay)] pt-safe px-4">
-                <div className="flex items-center h-14 mt-3 px-2 gap-1 bg-white rounded-xl border border-outline-variant">
+                <div className="flex items-center h-14 mt-3 px-2 gap-1 liquid-glass rounded-2xl">
                     <button
                         onClick={() => setIsSidebarOpen(true)}
                         className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-surface-container-low transition-colors text-on-surface active:scale-95"
@@ -306,20 +315,21 @@ const App: React.FC = () => {
 
             {/* ── 지도 컨트롤 (우측) — 시트 상단 위에 고정 ── */}
             <div
-                className="fixed right-4 z-[var(--z-overlay)] flex flex-col gap-3"
+                // 시트가 full이면 컨트롤이 시트 위로 밀려 검색바와 겹친다 — 지도가 안 보이는 상태이므로 숨긴다
+                className={`fixed right-4 z-[var(--z-overlay)] flex flex-col gap-3 ${activeTab === Tab.Nearby && sheetSnap === 'full' ? 'hidden' : ''}`}
                 style={{ bottom: activeTab === Tab.Nearby ? 'calc(var(--nav-h) + var(--sheet-h) + 16px)' : 'calc(var(--nav-h) + 16px)' }}
             >
                 <button
                     onClick={loadStations}
                     disabled={isDataLoading}
-                    className="w-11 h-11 bg-white text-on-surface-variant rounded-full flex items-center justify-center border border-outline-variant active:scale-90 transition-all disabled:opacity-50"
+                    className="w-12 h-12 liquid-glass text-on-surface-variant rounded-full flex items-center justify-center active:scale-90 transition-all disabled:opacity-50"
                 >
-                    <span className={`material-symbols-outlined text-[20px] ${isDataLoading ? 'animate-spin' : ''}`}>refresh</span>
+                    <span className={`material-symbols-outlined ${isDataLoading ? 'animate-spin' : ''}`}>refresh</span>
                 </button>
                 <button
                     onClick={handleGoToUserLocation}
                     disabled={isCentering}
-                    className="w-12 h-12 bg-white text-primary rounded-full flex items-center justify-center border border-outline-variant active:scale-90 transition-all"
+                    className="w-12 h-12 liquid-glass text-primary rounded-full flex items-center justify-center active:scale-90 transition-all"
                 >
                     <span className="material-symbols-outlined filled">my_location</span>
                 </button>
@@ -337,7 +347,7 @@ const App: React.FC = () => {
                                 type="button"
                                 onClick={() => {
                                     if (nearbyResult) setSelectedStationOnMap(nearbyResult);
-                                    setSheetSnap('full');
+                                    setSheetSnap(nearbyResult ? 'half' : 'full');
                                 }}
                                 className="w-full text-left flex items-center justify-between border-b border-outline-variant pb-3 active:opacity-70 transition-opacity"
                             >
@@ -361,20 +371,12 @@ const App: React.FC = () => {
                     }
                 >
                     {selectedStationOnMap ? (
-                        <div className="relative pt-1">
-                            <button
-                                onClick={handleCloseStationDetail}
-                                className="absolute -top-1 right-0 z-10 w-8 h-8 bg-white rounded-full flex items-center justify-center border border-outline-variant"
-                                aria-label="닫기"
-                            >
-                                <span className="material-symbols-outlined text-sm text-on-surface-variant">close</span>
-                            </button>
-                            <StationCard
-                                station={selectedStationOnMap}
-                                onSetAsStart={handleSetRouteStart}
-                                onSetAsEnd={handleSetRouteEnd}
-                            />
-                        </div>
+                        // 닫기는 지도 빈 곳 탭(handleMapBackgroundClick) 또는 시트 손잡이로 한다
+                        <StationCard
+                            station={selectedStationOnMap}
+                            onSetAsStart={handleSetRouteStart}
+                            onSetAsEnd={handleSetRouteEnd}
+                        />
                     ) : (
                         <div>
                             {nearbyStations.length === 0 && (
@@ -385,7 +387,12 @@ const App: React.FC = () => {
                             {nearbyStations.map((s) => (
                                 <button
                                     key={s.id}
-                                    onClick={() => { setSelectedStationOnMap(s); setSheetSnap('full'); }}
+                                    onClick={() => {
+                                        setSelectedStationOnMap(s);
+                                        setMapCenter([s.x_pos, s.y_pos]);
+                                        setMapZoom(16);
+                                        setSheetSnap('half');
+                                    }}
                                     className="w-full flex items-center justify-between gap-3 py-3 border-b border-outline-variant last:border-0 text-left"
                                 >
                                     <div className="min-w-0">
@@ -410,7 +417,7 @@ const App: React.FC = () => {
             {/* ── 내 주변 탭 에러 안내 ── */}
             {activeTab === Tab.Nearby && searchError && !isSearching && sheetSnap === 'peek' && (
                 <div className="fixed left-4 right-4 z-[var(--z-overlay)] animate-slide-up" style={{ bottom: 'calc(var(--nav-h) + var(--sheet-h) + 12px)' }}>
-                    <div className="error-box flex items-start gap-3">
+                    <div className="liquid-glass-thick rounded-2xl px-4 py-3 text-[var(--danger)] flex items-start gap-3">
                         <span className="material-symbols-outlined text-sm mt-0.5">error</span>
                         <p className="text-sm">{searchError}</p>
                     </div>
@@ -418,7 +425,8 @@ const App: React.FC = () => {
             )}
 
             {/* ── 하단 내비게이션 바 (주변/경로/즐겨찾기/더보기) ── */}
-            <nav className="fixed bottom-0 w-full z-[var(--z-nav)] flex justify-around items-center px-4 pb-safe pt-3 bottom-nav" style={{ height: 'var(--nav-h)' }}>
+            {/* padding은 하단 안전영역만 — pt-3/pb-safe(최소 24px)를 주면 72px 중 36px만 남아 탭이 위로 쏠린다 */}
+            <nav className="fixed bottom-0 w-full z-[var(--z-nav)] flex justify-around items-center px-4 bottom-nav" style={{ height: 'var(--nav-h)', paddingBottom: 'var(--safe-area-inset-bottom)' }}>
                 <NavTab
                     icon="explore"
                     label="주변"
@@ -516,7 +524,7 @@ const App: React.FC = () => {
                         className="fixed inset-0 z-[80] bg-gray-900/30"
                         onClick={() => setIsSidebarOpen(false)}
                     />
-                    <div className="fixed top-0 left-0 bottom-0 z-[90] w-72 bg-surface-container-lowest border-r border-outline-variant animate-sidebar-in flex flex-col">
+                    <div className="fixed top-0 left-0 bottom-0 z-[90] w-72 liquid-glass-thick rounded-r-[28px] animate-sidebar-in flex flex-col">
                         {/* 사이드바 헤더 */}
                         <div className="flex items-center justify-between px-5 pt-14 pb-6 border-b border-outline-variant">
                             <div>

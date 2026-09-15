@@ -137,8 +137,8 @@ const FavoritesList: React.FC<FavoritesListProps> = ({ onBack, onNavigateToMap, 
                 </section>
             </div>
 
-            {/* 하단 네비게이션 — 플랫, 그림자 없음 */}
-            <nav className="fixed bottom-0 w-full z-50 flex justify-around items-center px-4 pb-safe pt-3 bottom-nav" style={{ height: 'var(--nav-h)' }}>
+            {/* 하단 네비게이션 — App.tsx 탭바와 동일: padding은 하단 안전영역만 (pt-3/pb-safe면 탭이 위로 쏠린다) */}
+            <nav className="fixed bottom-0 w-full z-50 flex justify-around items-center px-4 bottom-nav" style={{ height: 'var(--nav-h)', paddingBottom: 'var(--safe-area-inset-bottom)' }}>
                 <button onClick={onNavigateToMap} className="flex flex-col items-center justify-center gap-0.5 px-4 py-2 rounded-xl transition-all active:scale-90 text-on-surface-variant hover:text-on-surface">
                     <span className="material-symbols-outlined">explore</span>
                     <span className="text-[11px] font-semibold font-label">주변</span>

@@ -25,7 +25,7 @@ const safeAreaTopPx = (): number => {
 // 스냅 상태 → 시트 높이(px). half/full은 뷰포트 크기에 따라 달라지므로 런타임 계산.
 // full은 탭바(--nav-h, 하단 안전영역 포함) 실측 높이와 상태바를 모두 빼야
 // 홈 화면 앱에서 시트가 상태바를 덮지 않는다. (고정 72px은 안전영역을 몰라 34px만큼 더 올라갔다)
-const snapHeightPx = (snap: SheetSnap): number => {
+export const snapHeightPx = (snap: SheetSnap): number => {
     const vh = window.innerHeight;
     if (snap === 'peek') return PEEK_PX;
     if (snap === 'half') return Math.round(vh * 0.44);
@@ -113,13 +113,14 @@ const Sheet: React.FC<SheetProps> = ({ snap, onSnapChange, peekContent, children
     return (
         <div
             ref={sheetRef}
-            className="fixed left-0 right-0 bottom-[var(--nav-h)] z-[var(--z-sheet)] bg-white rounded-t-xl shadow-sheet border-t border-gray-200 flex flex-col overflow-hidden touch-none"
+            className="fixed left-0 right-0 bottom-[var(--nav-h)] z-[var(--z-sheet)] liquid-glass-thick rounded-t-[28px] flex flex-col overflow-hidden touch-none"
             style={{ height: 'var(--sheet-h)', transition: dragState.current ? 'none' : 'height .28s cubic-bezier(.32,.72,0,1)' }}
         >
             <button
                 type="button"
                 aria-label="시트 높이 전환"
-                className="w-full flex flex-col items-center pt-2 pb-1 shrink-0 touch-none"
+                // 손잡이 막대는 작아도 터치 영역은 28px로 넉넉하게 (기존 16px은 누르기 어려웠다). peek 88px 안에 내용이 들어가는 한도.
+                className="w-full h-7 flex items-center justify-center shrink-0 touch-none"
                 onPointerDown={onPointerDown}
                 onPointerMove={onPointerMove}
                 onPointerUp={onPointerUp}

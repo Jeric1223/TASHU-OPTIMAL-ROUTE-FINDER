@@ -41,12 +41,13 @@ export default defineConfig(({ mode }) => {
                     globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
                     runtimeCaching: [
                         {
-                            urlPattern: /^https:\/\/.*\.tile\.openstreetmap\.org\/.*/i,
+                            // VWorld 배경지도 타일 (키 미설정 시 대체용 OSM 타일 포함)
+                            urlPattern: /^https:\/\/(api\.vworld\.kr\/req\/wmts\/|.*\.tile\.openstreetmap\.org\/)/i,
                             handler: 'CacheFirst',
                             options: {
-                                cacheName: 'openstreetmap-tiles',
+                                cacheName: 'map-tiles',
                                 expiration: {
-                                    maxEntries: 100,
+                                    maxEntries: 500,
                                     maxAgeSeconds: 60 * 60 * 24 * 7,
                                 },
                             },
