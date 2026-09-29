@@ -59,6 +59,23 @@ const StationDeck: React.FC<StationDeckProps> = ({ stations, selectedIndex, onSe
 
     useLayoutEffect(() => { applyScale(); }, [stations, applyScale]);
 
+    // 스크롤이 멈췄는데 카드가 가운데에서 벗어나 있으면(모바일에서 스냅이 덜 붙는 경우) 가장 가까운 카드를 가운데로 붙인다
+    const settleTimer = useRef(0);
+    const touching = useRef(false);
+    const settle = () => {
+        window.clearTimeout(settleTimer.current);
+        settleTimer.current = window.setTimeout(() => {
+            const deck = deckRef.current;
+            if (!deck || touching.current || drag.current.active || performance.now() < lockUntil.current) return;
+            const best = applyScale();
+            const card = deck.children[best] as HTMLElement | undefined;
+            if (best < 0 || !card) return;
+            if (best !== lastReported.current) { lastReported.current = best; onSelect(best); }
+            if (Math.abs(deck.scrollLeft - (card.offsetLeft - (deck.clientWidth - card.offsetWidth) / 2)) > 2) scrollToCard(best, true);
+        }, 140);
+    };
+    useEffect(() => () => window.clearTimeout(settleTimer.current), []);
+
     const onScroll = () => {
         cancelAnimationFrame(raf.current);
         raf.current = requestAnimationFrame(() => {
@@ -67,6 +84,7 @@ const StationDeck: React.FC<StationDeckProps> = ({ stations, selectedIndex, onSe
             if (best < 0 || performance.now() < lockUntil.current) return;
             if (best !== selectedIndex) { lastReported.current = best; onSelect(best); }
         });
+        settle();
     };
 
     const go = (i: number) => {
@@ -134,6 +152,9 @@ const StationDeck: React.FC<StationDeckProps> = ({ stations, selectedIndex, onSe
             <section
                 ref={deckRef}
                 onScroll={onScroll}
+                onTouchStart={() => { touching.current = true; }}
+                onTouchEnd={() => { touching.current = false; settle(); }}
+                onTouchCancel={() => { touching.current = false; settle(); }}
                 onPointerDown={onPointerDown}
                 onPointerMove={onPointerMove}
                 onPointerUp={endDrag}

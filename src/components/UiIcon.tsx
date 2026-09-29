@@ -12,6 +12,15 @@ const PATHS = {
     swap: <path d="M8 5v14m0 0-3-3m3 3 3-3M16 19V5m0 0-3 3m3-3 3 3" />,
     edit: <><path d="m5 19 1-4 9-9 3 3-9 9z" /><path d="m14 7 3 3" /></>,
     trash: <path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12" />,
+    refresh: <><path d="M19 12a7 7 0 1 1-2.1-5" /><path d="M19 4.5V8h-3.5" /></>,
+    locate: <><circle cx="12" cy="12" r="7.5" /><circle cx="12" cy="12" r="2.6" fill="currentColor" /><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2" /></>,
+    navigate: <path d="M20 4 4 10.5l6.5 2.5 2.5 6.5z" />,
+    close: <path d="m6 6 12 12M18 6 6 18" />,
+    star: <path d="m12 4.5 2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5-3.6-3.5 5-.7z" />,
+    alert: <><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5v5" /><circle cx="12" cy="16" r=".6" fill="currentColor" /></>,
+    info: <><circle cx="12" cy="12" r="8.5" /><path d="M12 11v5" /><circle cx="12" cy="8" r=".6" fill="currentColor" /></>,
+    help: <><circle cx="12" cy="12" r="8.5" /><path d="M9.7 9.6a2.4 2.4 0 1 1 3.4 2.2c-.7.4-1.1.9-1.1 1.6" /><circle cx="12" cy="16.6" r=".6" fill="currentColor" /></>,
+    feedback: <path d="M5 5h14v10h-8.5L6 19v-4H5z" />,
 } as const;
 
 export type UiIconName = keyof typeof PATHS;

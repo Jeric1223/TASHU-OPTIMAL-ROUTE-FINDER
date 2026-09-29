@@ -3,7 +3,7 @@ import type { Station, StationWithDistance, Coordinates, LocationSearchResult, O
 import { getCurrentLocation } from "./services/locationService";
 import { findNearestAvailableStation, fetchTashuStations, haversineDistance } from "./services/tashuService";
 import { getFavorites } from "./services/favoriteService";
-import UiIcon from "./components/UiIcon";
+import UiIcon, { type UiIconName } from "./components/UiIcon";
 import FavoritesList from "./components/FavoritesList";
 import RouteSearch from "./components/RouteSearch";
 import RouteResult from "./components/RouteResult";
@@ -242,7 +242,7 @@ const App: React.FC = () => {
         return (
             <div className="h-screen flex flex-col items-center justify-center bg-surface p-6">
                 <div className="bg-white border border-outline-variant rounded-xl p-8 max-w-sm w-full text-center">
-                    <span className="material-symbols-outlined text-4xl text-error mb-3 block">error</span>
+                    <UiIcon name="alert" className="w-10 h-10 text-error mb-3 mx-auto" />
                     <p className="font-headline font-bold text-on-surface text-lg mb-2">데이터 로딩 오류</p>
                     <p className="text-sm text-on-surface-variant mb-5">{dataError}</p>
                     <button
@@ -250,7 +250,7 @@ const App: React.FC = () => {
                         disabled={isDataLoading}
                         className="w-full bg-primary text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 press"
                     >
-                        <span className="material-symbols-outlined text-sm">refresh</span>
+                        <UiIcon name="refresh" className="w-4 h-4" />
                         재시도
                     </button>
                 </div>
@@ -315,7 +315,7 @@ const App: React.FC = () => {
                     disabled={isDataLoading}
                     className="w-12 h-12 liquid-glass text-on-surface-variant rounded-full flex items-center justify-center press disabled:opacity-50"
                 >
-                    <span className={`material-symbols-outlined ${isDataLoading ? 'animate-spin' : ''}`}>refresh</span>
+                    <UiIcon name="refresh" className={`w-6 h-6 ${isDataLoading ? 'animate-spin' : ''}`} />
                 </button>
                 <button
                     onClick={handleGoToNearestStation}
@@ -323,14 +323,14 @@ const App: React.FC = () => {
                     aria-label="가장 가까운 대여 가능 정류소"
                     className="w-12 h-12 liquid-glass text-primary rounded-full flex items-center justify-center press disabled:opacity-50"
                 >
-                    <span className="material-symbols-outlined">route</span>
+                    <UiIcon name="route" />
                 </button>
                 <button
                     onClick={handleGoToUserLocation}
                     disabled={isCentering}
                     className="w-12 h-12 liquid-glass text-primary rounded-full flex items-center justify-center press"
                 >
-                    <span className="material-symbols-outlined filled">my_location</span>
+                    <UiIcon name="locate" />
                 </button>
             </div>
 
@@ -354,7 +354,7 @@ const App: React.FC = () => {
             {searchError && !isSearching && (
                 <div className="fixed left-4 right-4 z-[var(--z-modal)] animate-slide-up" style={{ bottom: activeTab === Tab.Nearby ? 'calc(var(--nav-h) + var(--deck-h) + 12px)' : 'calc(var(--nav-h) + 12px)' }}>
                     <div className="liquid-glass-thick rounded-2xl px-4 py-3 text-[var(--danger)] flex items-start gap-3">
-                        <span className="material-symbols-outlined text-sm mt-0.5">error</span>
+                        <UiIcon name="alert" className="w-4 h-4 mt-0.5 shrink-0" />
                         <p className="text-sm">{searchError}</p>
                     </div>
                 </div>
@@ -458,7 +458,7 @@ const App: React.FC = () => {
                                 onClick={() => setIsSidebarOpen(false)}
                                 className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-surface-container-low transition-colors text-on-surface-variant"
                             >
-                                <span className="material-symbols-outlined">close</span>
+                                <UiIcon name="close" />
                             </button>
                         </div>
 
@@ -507,7 +507,7 @@ const NavTab: React.FC<NavTabProps> = ({ icon, label, active, onClick }) => (
 );
 
 interface SidebarItemProps {
-    icon: string;
+    icon: UiIconName;
     label: string;
     onClick?: () => void;
 }
@@ -517,7 +517,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icon, label, onClick }) => (
         onClick={onClick}
         className="w-full flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-surface-container-low transition-colors text-on-surface"
     >
-        <span className="material-symbols-outlined text-on-surface-variant">{icon}</span>
+        <UiIcon name={icon} className="w-6 h-6 text-on-surface-variant" />
         <span className="font-medium text-sm">{label}</span>
     </button>
 );
