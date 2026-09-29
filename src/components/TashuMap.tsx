@@ -20,7 +20,7 @@ import { defaults as defaultInteractions } from 'ol/interaction/defaults';
 import type { FeatureLike } from 'ol/Feature';
 import type BaseLayer from 'ol/layer/Base';
 import type { Station, StationWithDistance, Coordinates, OptimalRoute } from '../types';
-import { fetchRoadPath } from '../services/roadRouteService';
+import { fetchRoadPath, lonLatOf } from '../services/roadRouteService';
 import type { LonLat } from '../services/roadRouteService';
 
 interface TashuMapProps {
@@ -241,10 +241,6 @@ const toStationFeatures = (stations: Station[]) =>
         parking_count: Number(s.parking_count ?? 0),
       })
   );
-
-type RoutePoint = OptimalRoute['segments'][number]['startPoint'];
-const lonLatOf = (p: RoutePoint): [number, number] =>
-  'x_pos' in p ? [Number(p.y_pos), Number(p.x_pos)] : [p.coords.longitude, p.coords.latitude];
 
 // 도로 좌표는 가장 가까운 도로로 스냅되어 끝점이 실제 지점과 조금 어긋난다. 양 끝에 실제 지점을 이어 붙인다.
 const withEnds = (path: LonLat[] | null | undefined, start: LonLat, end: LonLat): LonLat[] =>
@@ -475,7 +471,7 @@ const TashuMap: React.FC<TashuMapProps> = ({
     ).then((paths) => {
       if (ctrl.signal.aborted || paths.every((p) => !p)) return;
       source.clear();
-      source.addFeatures(toRouteFeatures(route, paths));
+      source.addFeatures(toRouteFeatures(route, paths.map((p) => p?.coords ?? null)));
     });
     return () => ctrl.abort();
   }, [route]);
@@ -501,7 +497,7 @@ const TashuMap: React.FC<TashuMapProps> = ({
     fetchRoadPath('foot', a, b, ctrl.signal).then((path) => {
       if (ctrl.signal.aborted || !path) return;
       source.clear();
-      source.addFeature(new Feature({ geometry: new LineString(withEnds(path, a, b).map((p) => fromLonLat(p))) }));
+      source.addFeature(new Feature({ geometry: new LineString(withEnds(path.coords, a, b).map((p) => fromLonLat(p))) }));
     });
     if (!walkBubbleRef.current) {
       const el = document.createElement('div');

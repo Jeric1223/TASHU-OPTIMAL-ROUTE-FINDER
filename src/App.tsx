@@ -11,6 +11,7 @@ import TashuMap from "./components/TashuMap";
 import StationDeck from "./components/StationDeck";
 import SegToggle from "./components/SegToggle";
 import { useCountUp } from "./hooks/useCountUp";
+import { useRoadRoute } from "./hooks/useRoadRoute";
 import { formatDistance, walkMinutes } from "./components/StationDeck";
 import "./styles/index.css";
 
@@ -43,6 +44,7 @@ const App: React.FC = () => {
     const [isCentering, setIsCentering] = useState<boolean>(false);
     const [isFindingNearest, setIsFindingNearest] = useState<boolean>(false);
     const [currentRoute, setCurrentRoute] = useState<OptimalRoute | null>(null);
+    const roadRoute = useRoadRoute(currentRoute);
 
     const [routeStartStation, setRouteStartStation] = useState<LocationSearchResult | null>(null);
     // 값이 바뀔 때마다 경로 화면의 도착 입력에 포커스를 준다
@@ -401,8 +403,8 @@ const App: React.FC = () => {
                         className="pointer-events-auto absolute inset-x-0 bottom-0 flex flex-col rounded-t-[28px] bg-surface shadow-[0_-8px_32px_rgba(20,23,28,0.12),0_0_0_1px_rgba(20,23,28,0.05)] min-[900px]:inset-x-auto min-[900px]:left-4 min-[900px]:w-[400px] min-[900px]:top-[148px] min-[900px]:bottom-4 min-[900px]:rounded-3xl"
                         style={{ top: 'calc(46% - 24px)' }}
                     >
-                        {currentRoute ? (
-                            <RouteResult route={currentRoute} />
+                        {roadRoute ? (
+                            <RouteResult route={roadRoute} />
                         ) : (
                             <div className="flex-1 overflow-y-auto px-4 pt-[22px] no-scrollbar" style={{ paddingBottom: 'calc(var(--nav-h) + 40px)' }}>
                                 <h1 className="font-headline font-bold text-[26px] leading-[1.4] text-on-surface" style={{ textWrap: 'balance' }}>어디서 어디까지 가세요?</h1>

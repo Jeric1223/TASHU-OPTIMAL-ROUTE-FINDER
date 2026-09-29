@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { Coordinates, FavoriteStation } from '../types/index';
 import { getFavorites, removeFavorite, updateFavoriteNickname } from '../services/favoriteService';
 import { haversineDistance } from '../services/tashuService';
+import { calculateWalkTime } from '../services/routeService';
 import { useCountUp } from '../hooks/useCountUp';
 import UiIcon from './UiIcon';
 
@@ -14,7 +15,6 @@ interface FavoritesListProps {
     userLocation?: Coordinates | null;
 }
 
-const WALK_M_PER_MIN = 70;
 const NICKNAME_MAX = 20;
 
 const FavoritesList: React.FC<FavoritesListProps> = ({ onBack, onStationSelect, onIdsChange, userLocation }) => {
@@ -110,7 +110,7 @@ const FavoritesList: React.FC<FavoritesListProps> = ({ onBack, onStationSelect, 
                                 : undefined;
                             const meters = dist !== undefined ? Math.round(dist * 1000) : null;
                             const distText = dist === undefined ? null : dist < 1 ? `${meters}m` : `${dist.toFixed(1)}km`;
-                            const walkMin = meters !== null ? Math.max(1, Math.round(meters / WALK_M_PER_MIN)) : null;
+                            const walkMin = meters !== null ? Math.max(1, calculateWalkTime(meters / 1000)) : null;
                             const title = fav.nickname || fav.name;
                             const isSel = selectedId === fav.id;
 

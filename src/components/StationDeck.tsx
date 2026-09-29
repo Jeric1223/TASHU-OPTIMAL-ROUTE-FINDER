@@ -3,11 +3,10 @@ import type { StationWithDistance } from '../types/index';
 import FavoriteButton from './FavoriteButton';
 import { useCountUp } from '../hooks/useCountUp';
 import UiIcon from './UiIcon';
-
-const WALK_M_PER_MIN = 70;
+import { calculateWalkTime } from '../services/routeService';
 
 export const formatDistance = (km: number) => (km < 1 ? `${Math.round(km * 1000)}m` : `${km.toFixed(1)}km`);
-export const walkMinutes = (km: number) => Math.max(1, Math.round((km * 1000) / WALK_M_PER_MIN));
+export const walkMinutes = (km: number) => Math.max(1, calculateWalkTime(km));
 
 interface StationDeckProps {
     stations: StationWithDistance[];
