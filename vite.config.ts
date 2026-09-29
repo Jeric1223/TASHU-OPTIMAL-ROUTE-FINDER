@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => {
             basicSsl(),
             VitePWA({
                 registerType: 'autoUpdate',
-                includeAssets: ['icons/*.png', 'favicon.ico'],
+                includeAssets: ['icons/*.png', 'icons/*.svg'],
                 manifest: {
                     name: '타슈 최적 경로 찾기',
                     short_name: 'TASHU',
