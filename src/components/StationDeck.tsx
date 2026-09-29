@@ -136,6 +136,24 @@ const StationDeck: React.FC<StationDeckProps> = ({ stations, selectedIndex, onSe
         if (drag.current.moved) { e.stopPropagation(); e.preventDefault(); drag.current.moved = false; }
     };
 
+    // 휠(마우스·트랙패드 세로 스크롤)로 카드를 한 장씩 넘긴다. 트랙패드 관성으로 연달아 들어오는 이벤트는 쿨다운으로 묶는다.
+    // React onWheel은 passive라 preventDefault가 안 되므로 직접 등록한다. 가로 스와이프(deltaX)는 브라우저 기본 스크롤에 맡긴다.
+    const wheelLock = useRef(0);
+    useEffect(() => {
+        const deck = deckRef.current;
+        if (!deck) return;
+        const onWheel = (e: WheelEvent) => {
+            if (Math.abs(e.deltaY) <= Math.abs(e.deltaX) || !stations.length) return;
+            e.preventDefault();
+            const now = performance.now();
+            if (now < wheelLock.current || Math.abs(e.deltaY) < 4) return;
+            wheelLock.current = now + 380;
+            go(selectedIndex + (e.deltaY > 0 ? 1 : -1));
+        };
+        deck.addEventListener('wheel', onWheel, { passive: false });
+        return () => deck.removeEventListener('wheel', onWheel);
+    });
+
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => {
             if ((e.target as HTMLElement).closest('input, textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
