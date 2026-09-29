@@ -2,6 +2,7 @@ import type { Coordinates, OptimalRoute, RouteSegment, Station, StationWithDista
 import { haversineDistance } from './tashuService';
 
 // Constants for speed calculations
+// 앱 전체의 소요 시간은 이 속도 하나로 계산한다 (경로·주변 카드·즐겨찾기 공통)
 const WALK_SPEED = 4; // km/h
 const BIKE_SPEED = 15; // km/h
 
@@ -98,6 +99,25 @@ export const calculateOptimalRoute = (
         totalDuration,
         startStation: { ...startStation, distance: walkToStartDist },
         endStation: { ...endStation, distance: walkFromEndDist },
+    };
+};
+
+/**
+ * 직선 거리로 만든 경로에 도로 거리를 반영한다 (roadKm[i]가 null이면 그 구간은 그대로 둔다).
+ * 시간은 OSRM의 duration 대신 도로 거리 ÷ 앱 속도로 다시 계산한다.
+ */
+export const applyRoadDistances = (route: OptimalRoute, roadKm: (number | null)[]): OptimalRoute => {
+    const segments = route.segments.map((seg, i) => {
+        const km = roadKm[i];
+        if (km == null) return seg;
+        const duration = seg.type === 'bike' ? calculateBikeTime(km) : calculateWalkTime(km);
+        return { ...seg, distance: km, duration };
+    });
+    return {
+        ...route,
+        segments,
+        totalDistance: segments.reduce((sum, seg) => sum + seg.distance, 0),
+        totalDuration: segments.reduce((sum, seg) => sum + seg.duration, 0),
     };
 };
 

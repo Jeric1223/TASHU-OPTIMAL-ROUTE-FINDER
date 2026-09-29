@@ -18,7 +18,10 @@ import { boundingExtent } from 'ol/extent';
 import { defaults as defaultControls } from 'ol/control/defaults';
 import { defaults as defaultInteractions } from 'ol/interaction/defaults';
 import type { FeatureLike } from 'ol/Feature';
+import type BaseLayer from 'ol/layer/Base';
 import type { Station, StationWithDistance, Coordinates, OptimalRoute } from '../types';
+import { fetchRoadPath, lonLatOf } from '../services/roadRouteService';
+import type { LonLat } from '../services/roadRouteService';
 
 interface TashuMapProps {
   stations: Station[];
@@ -26,18 +29,23 @@ interface TashuMapProps {
   zoom: number;
   userLocation?: Coordinates | null;
   searchResult?: StationWithDistance | null;
-  selectedDestination?: Coordinates | null;
+  /** 주어지면 이 id의 정류소만 지도에 그린다 (즐겨찾기 탭) */
+  visibleStationIds?: string[] | null;
+  /** 내 위치 → 선택한 정류소 도보선과 '도보 N분' 말풍선 (주변 탭) */
+  walkLine?: { from: Coordinates; to: Coordinates; label: string } | null;
   clickedStationId?: string | null;
   onStationClick: (station: Station) => void;
   /** 정류소·클러스터가 아닌 지도 빈 곳을 탭했을 때 */
   onMapClick?: () => void;
   route?: OptimalRoute | null;
+  /** 경로 결과를 볼 때 정류소·클러스터를 숨겨 길이 잘 보이게 한다 */
+  hideStations?: boolean;
   /** 지도 위를 덮는 UI(상단 검색바, 하단 시트+탭바) 높이(px). 중심 이동 시 가려지지 않는 영역 가운데로 맞춘다. */
   coveredInsets?: { top: number; bottom: number };
 }
 
 /**
- * 배경지도: VWorld WMTS 'Base' 레이어 (Google XYZ 좌표계, z6–19). 장소명·POI 아이콘이 포함된 일반지도.
+ * 배경지도: VWorld WMTS 'white' 레이어 (Google XYZ 좌표계, z6–19). 채도를 뺀 백지도라 핀·경로가 돋보인다. 'Base'는 POI 아이콘이 많아 핀과 경쟁한다.
  * 키는 빌드 시 주입된다 (로컬 .env / GitHub Actions secrets.VITE_VWORLD_KEY).
  * 키가 없으면 지도가 통째로 비지 않도록 OSM으로 대체한다.
  */
@@ -49,7 +57,7 @@ const createBaseSource = () => {
     return new OSM();
   }
   return new XYZ({
-    url: `https://api.vworld.kr/req/wmts/1.0.0/${VWORLD_KEY}/Base/{z}/{y}/{x}.png`,
+    url: `https://api.vworld.kr/req/wmts/1.0.0/${VWORLD_KEY}/white/{z}/{y}/{x}.png`,
     minZoom: 6,
     maxZoom: 19,
     attributions: '© VWorld · 국토교통부',
@@ -67,84 +75,70 @@ const CLUSTER_DISTANCE = 60;
 const FONT_STACK = "'Pretendard Variable', Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif";
 const IMAGE_PIXEL_RATIO = 2;
 
-// Material directions_bike (24x24)
-const BIKE_PATH =
-  'M15.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM5 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5zm5.8-10l2.4-2.4.8.8c1.3 1.3 3 2.1 5.1 2.1V9c-1.5 0-2.7-.6-3.6-1.5l-1.9-1.9c-.5-.4-1-.6-1.6-.6s-1.1.2-1.4.6L7.8 8.4c-.4.4-.6.9-.6 1.4 0 .6.2 1.1.6 1.4L11 14v5h2v-6.2l-2.2-2.3zM19 12c-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5-2.2-5-5-5zm0 8.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5 3.5 1.6 3.5 3.5-1.6 3.5-3.5 3.5z';
-
 type PillState = 'available' | 'empty' | 'selected';
 
-// 잠금 팔레트만 사용: primary / primary-dim / gray-300 / gray-500
-const PILL_COLORS: Record<PillState, { bg: string; border: string; fg: string }> = {
-  available: { bg: '#FFFFFF', border: '#006A3C', fg: '#006A3C' },
-  empty: { bg: '#FFFFFF', border: '#C7CCD3', fg: '#7A828C' },
-  selected: { bg: '#006A3C', border: '#00542F', fg: '#FFFFFF' },
+// 시안 D: 흰 알약에 숫자만. 선택되면 초록으로 채운다.
+const PILL_COLORS: Record<PillState, { bg: string; fg: string }> = {
+  available: { bg: '#FFFFFF', fg: '#14171C' },
+  empty: { bg: '#FFFFFF', fg: '#7A828C' },
+  selected: { bg: '#006A3C', fg: '#FFFFFF' },
 };
 
-/** 논리 px 크기의 캔버스를 만들고 2배 스케일을 적용한다. 선이 잘리지 않게 사방 1px 여백을 둔다. */
+/** 논리 px 크기의 캔버스를 만들고 2배 스케일을 적용한다. 그림자가 잘리지 않게 사방 여백을 둔다. */
+const CANVAS_PAD = 8;
 const createCanvas = (width: number, height: number) => {
   const canvas = document.createElement('canvas');
-  canvas.width = (width + 2) * IMAGE_PIXEL_RATIO;
-  canvas.height = (height + 2) * IMAGE_PIXEL_RATIO;
+  canvas.width = (width + CANVAS_PAD * 2) * IMAGE_PIXEL_RATIO;
+  canvas.height = (height + CANVAS_PAD * 2) * IMAGE_PIXEL_RATIO;
   const ctx = canvas.getContext('2d');
   if (!ctx) return null;
   ctx.scale(IMAGE_PIXEL_RATIO, IMAGE_PIXEL_RATIO);
-  ctx.translate(1, 1);
+  ctx.translate(CANVAS_PAD, CANVAS_PAD);
   return { canvas, ctx };
 };
 
-/** 알약 라벨: [자전거 아이콘 + 대여 가능 대수] + 아래 꼬리. 꼬리 끝이 정류소 좌표에 온다. */
-const PILL_H = 26;
-const PILL_TAIL = 6;
+/** 알약 라벨: 대여 가능 대수만. 정류소 좌표가 알약 중심에 온다. */
+const PILL_H = 32;
+const PILL_MIN_W = 32;
 
 const drawPill = (state: PillState, count: number) => {
   const PAD_X = 9;
-  const ICON = 14;
-  const GAP = 4;
-  const font = `700 13px ${FONT_STACK}`;
+  const font = `700 14px ${FONT_STACK}`;
   const label = String(count);
   const colors = PILL_COLORS[state];
 
   const measure = document.createElement('canvas').getContext('2d');
   if (!measure) return null;
   measure.font = font;
-  const W = Math.ceil(PAD_X * 2 + ICON + GAP + measure.measureText(label).width);
+  const W = Math.max(PILL_MIN_W, Math.ceil(PAD_X * 2 + measure.measureText(label).width));
   const H = PILL_H;
 
-  const created = createCanvas(W, H + PILL_TAIL);
+  const created = createCanvas(W, H);
   if (!created) return null;
   const { canvas, ctx } = created;
 
   const radius = H / 2;
-  const cx = W / 2;
   ctx.beginPath();
   ctx.moveTo(radius, 0);
   ctx.lineTo(W - radius, 0);
   ctx.arc(W - radius, radius, radius, -Math.PI / 2, Math.PI / 2);
-  ctx.lineTo(cx + 5, H);
-  ctx.lineTo(cx, H + PILL_TAIL);
-  ctx.lineTo(cx - 5, H);
   ctx.lineTo(radius, H);
   ctx.arc(radius, radius, radius, Math.PI / 2, Math.PI * 1.5);
   ctx.closePath();
+  ctx.shadowColor = 'rgba(20, 23, 28, 0.25)';
+  ctx.shadowBlur = 8;
+  ctx.shadowOffsetY = 2;
   ctx.fillStyle = colors.bg;
   ctx.fill();
-  ctx.lineWidth = 1.5;
-  ctx.strokeStyle = colors.border;
-  ctx.stroke();
-
-  ctx.save();
-  ctx.translate(PAD_X, (H - ICON) / 2);
-  ctx.scale(ICON / 24, ICON / 24);
-  ctx.fillStyle = colors.fg;
-  ctx.fill(new Path2D(BIKE_PATH));
-  ctx.restore();
+  ctx.shadowColor = 'transparent';
 
   ctx.font = font;
   ctx.fillStyle = colors.fg;
+  ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(label, PAD_X + ICON + GAP, H / 2 + 1);
+  ctx.fillText(label, W / 2, H / 2 + 1);
 
-  return canvas;
+  return { canvas, height: H };
 };
 
 /** 클러스터: 초록 원 + 흰 테두리 + 흰 숫자. 개수 구간에 따라 지름만 키운다. */
@@ -179,17 +173,16 @@ const getPillStyle = (state: PillState, count: number) => {
   const key = `pill-${state}-${count}`;
   let style = styleCache.get(key);
   if (!style) {
-    const img = drawPill(state, count);
+    const pill = drawPill(state, count);
     style = new Style({
-      image: img
+      image: pill
         ? new Icon({
-            img,
-            scale: 1 / IMAGE_PIXEL_RATIO,
-            // 꼬리 끝(캔버스 여백 1px 포함)이 좌표에 오도록
-            anchor: [0.5, (PILL_H + PILL_TAIL + 1) * IMAGE_PIXEL_RATIO],
-            anchorYUnits: 'pixels',
+            img: pill.canvas,
+            // 선택된 핀은 시안처럼 1.3배
+            scale: (state === 'selected' ? 1.3 : 1) / IMAGE_PIXEL_RATIO,
           })
         : undefined,
+      zIndex: state === 'selected' ? 10 : 0,
     });
     styleCache.set(key, style);
   }
@@ -218,11 +211,12 @@ const stationStyle = (feature: FeatureLike) => {
   return getPillStyle(count > 0 ? 'available' : 'empty', count);
 };
 
+// 도보는 점선(점 모양), 자전거는 초록 실선 — 시안 D
 const walkStyle = new Style({
   stroke: new Stroke({
-    color: 'rgba(156, 163, 173, 0.8)',
-    width: 3,
-    lineDash: [6, 12],
+    color: 'rgba(107, 114, 125, 0.7)',
+    width: 4,
+    lineDash: [1, 10],
     lineCap: 'round',
   }),
 });
@@ -248,22 +242,22 @@ const toStationFeatures = (stations: Station[]) =>
       })
   );
 
-const toRouteFeatures = (route?: OptimalRoute | null) =>
+// 도로 좌표는 가장 가까운 도로로 스냅되어 끝점이 실제 지점과 조금 어긋난다. 양 끝에 실제 지점을 이어 붙인다.
+const withEnds = (path: LonLat[] | null | undefined, start: LonLat, end: LonLat): LonLat[] =>
+  path ? [start, ...path, end] : [start, end];
+
+// roadPaths[i]가 있으면 i번째 구간을 도로 좌표로, 없으면 직선으로 그린다
+const toRouteFeatures = (route?: OptimalRoute | null, roadPaths: (LonLat[] | null)[] = []) =>
   // 도보(점선) → 자전거(실선) 순서로 넣어 자전거 구간이 위에 그려지게
-  [...(route?.segments ?? [])]
-    .sort((a, b) => Number(a.type !== 'walk') - Number(b.type !== 'walk'))
-    .map((segment) => {
-      const start =
-        'x_pos' in segment.startPoint
-          ? [segment.startPoint.y_pos, segment.startPoint.x_pos]
-          : [segment.startPoint.coords.longitude, segment.startPoint.coords.latitude];
-      const end =
-        'x_pos' in segment.endPoint
-          ? [segment.endPoint.y_pos, segment.endPoint.x_pos]
-          : [segment.endPoint.coords.longitude, segment.endPoint.coords.latitude];
+  (route?.segments ?? [])
+    .map((segment, i) => ({ segment, i }))
+    .sort((a, b) => Number(a.segment.type !== 'walk') - Number(b.segment.type !== 'walk'))
+    .map(({ segment, i }) => {
+      const start = lonLatOf(segment.startPoint);
+      const end = lonLatOf(segment.endPoint);
 
       return new Feature({
-        geometry: new LineString([fromLonLat(start), fromLonLat(end)]),
+        geometry: new LineString(withEnds(roadPaths[i], start, end).map((p) => fromLonLat(p))),
         walk: segment.type === 'walk',
       });
     });
@@ -274,11 +268,13 @@ const TashuMap: React.FC<TashuMapProps> = ({
   zoom,
   userLocation,
   searchResult,
-  selectedDestination,
+  visibleStationIds,
+  walkLine,
   clickedStationId,
   onStationClick,
   onMapClick,
   route,
+  hideStations = false,
   coveredInsets,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -287,7 +283,10 @@ const TashuMap: React.FC<TashuMapProps> = ({
   const routeSourceRef = useRef<VectorSource | null>(null);
   const highlightSourceRef = useRef<VectorSource | null>(null);
   const userMarkerRef = useRef<Overlay | null>(null);
-  const destMarkerRef = useRef<Overlay | null>(null);
+  const walkSourceRef = useRef<VectorSource | null>(null);
+  const stationLayersRef = useRef<BaseLayer[]>([]);
+  const walkBubbleRef = useRef<Overlay | null>(null);
+  const routePinsRef = useRef<Overlay[]>([]);
   // 최신 콜백을 이벤트 핸들러에서 쓰기 위한 참조 (핸들러를 재등록하지 않는다)
   const onStationClickRef = useRef(onStationClick);
   onStationClickRef.current = onStationClick;
@@ -301,6 +300,7 @@ const TashuMap: React.FC<TashuMapProps> = ({
     const stationSource = new VectorSource();
     const clusterSource = new Cluster({ source: stationSource, distance: CLUSTER_DISTANCE });
     const routeSource = new VectorSource();
+    const walkSource = new VectorSource();
     const highlightSource = new VectorSource();
 
     const stationLayer = new VectorLayer({
@@ -320,6 +320,7 @@ const TashuMap: React.FC<TashuMapProps> = ({
       source: highlightSource,
       style: (f) => getPillStyle('selected', parkingCount(f)),
     });
+    const walkLayer = new VectorLayer({ source: walkSource, style: walkStyle });
     const routeLayer = new VectorLayer({
       source: routeSource,
       style: (f) => (f.get('walk') ? walkStyle : bikeStyle),
@@ -327,7 +328,7 @@ const TashuMap: React.FC<TashuMapProps> = ({
 
     const map = new OlMap({
       target: containerRef.current,
-      layers: [new TileLayer({ source: createBaseSource() }), routeLayer, stationLayer, highlightLayer],
+      layers: [new TileLayer({ source: createBaseSource() }), walkLayer, routeLayer, stationLayer, highlightLayer],
       view: new View({
         center: fromLonLat([center[1], center[0]]),
         zoom,
@@ -342,8 +343,10 @@ const TashuMap: React.FC<TashuMapProps> = ({
       interactions: defaultInteractions({ altShiftDragRotate: false, pinchRotate: false }),
     });
     mapRef.current = map;
+    stationLayersRef.current = [stationLayer, highlightLayer];
     stationSourceRef.current = stationSource;
     routeSourceRef.current = routeSource;
+    walkSourceRef.current = walkSource;
     highlightSourceRef.current = highlightSource;
 
     const view = map.getView();
@@ -406,27 +409,106 @@ const TashuMap: React.FC<TashuMapProps> = ({
       map.setTarget(undefined);
       mapRef.current = null;
       userMarkerRef.current = null;
-      destMarkerRef.current = null;
+      walkBubbleRef.current = null;
+      routePinsRef.current = [];
     };
     // 최초 1회만 생성한다 (center/zoom 후속 변경은 아래 effect가 처리)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 정류소
+  // 정류소 (즐겨찾기 탭에서는 저장한 정류소만)
+  const visibleKey = visibleStationIds ? visibleStationIds.join(',') : null;
   useEffect(() => {
     const source = stationSourceRef.current;
     if (!source) return;
+    const shown = visibleStationIds ? stations.filter((s) => visibleStationIds.includes(s.id)) : stations;
     source.clear();
-    source.addFeatures(toStationFeatures(stations));
-  }, [stations]);
+    source.addFeatures(toStationFeatures(shown));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stations, visibleKey]);
 
-  // 경로
   useEffect(() => {
+    stationLayersRef.current.forEach((l) => l.setVisible(!hideStations));
+  }, [hideStations]);
+
+  // 경로: 선, 대여/반납/도착 라벨 핀, 경로 전체가 보이도록 화면 맞춤
+  useEffect(() => {
+    const map = mapRef.current;
     const source = routeSourceRef.current;
-    if (!source) return;
+    if (!map || !source) return;
     source.clear();
     source.addFeatures(toRouteFeatures(route));
+    routePinsRef.current.forEach((o) => map.removeOverlay(o));
+    routePinsRef.current = [];
+    if (!route || route.segments.length === 0) return;
+
+    const pinAt = (label: string, lonLat: [number, number], tone: 'white' | 'muted' | 'accent') => {
+      const el = document.createElement('div');
+      const color = tone === 'accent' ? 'bg-[#006A3C] text-white' : tone === 'muted' ? 'bg-white text-[#7A828C]' : 'bg-white text-[#14171C]';
+      el.className = `px-3 min-w-[36px] h-8 grid place-items-center rounded-2xl text-sm font-bold whitespace-nowrap shadow-[0_2px_8px_rgba(20,23,28,0.25)] ${color}`;
+      el.textContent = label;
+      const overlay = new Overlay({ element: el, positioning: 'center-center', position: fromLonLat(lonLat), stopEvent: false });
+      map.addOverlay(overlay);
+      routePinsRef.current.push(overlay);
+    };
+    pinAt('대여', [Number(route.startStation.y_pos), Number(route.startStation.x_pos)], route.startStation.parking_count === 0 ? 'muted' : 'white');
+    pinAt('반납', [Number(route.endStation.y_pos), Number(route.endStation.x_pos)], 'white');
+    pinAt('도착', lonLatOf(route.segments[route.segments.length - 1].endPoint), 'accent');
+
+    // 위는 유리 입력 폼, 아래는 결과 시트(모바일) / 왼쪽은 패널(데스크톱)이 덮는다
+    const desktop = window.innerWidth >= 900;
+    const padding = desktop ? [80, 80, 80, 460] : [150, 40, Math.round(window.innerHeight * 0.54) + 24, 40];
+    const extent = boundingExtent(
+      route.segments.flatMap((seg) => [fromLonLat(lonLatOf(seg.startPoint)), fromLonLat(lonLatOf(seg.endPoint))])
+    );
+    map.getView().fit(extent, { padding, duration: 700, maxZoom: 17 });
+
+    // 직선을 먼저 보여 주고, 도로 좌표가 오면 길을 따라가는 선으로 바꾼다 (실패한 구간은 직선 유지)
+    // 자전거 구간도 foot 프로파일을 쓴다: OSM bike 프로파일은 대전에서 foot의 1~2배 넘게 돌아간다 (시청→유성온천 10.4km vs 4.6km)
+    const ctrl = new AbortController();
+    Promise.all(
+      route.segments.map((seg) => fetchRoadPath('foot', lonLatOf(seg.startPoint), lonLatOf(seg.endPoint), ctrl.signal))
+    ).then((paths) => {
+      if (ctrl.signal.aborted || paths.every((p) => !p)) return;
+      source.clear();
+      source.addFeatures(toRouteFeatures(route, paths.map((p) => p?.coords ?? null)));
+    });
+    return () => ctrl.abort();
   }, [route]);
+
+  // 내 위치 → 선택 정류소 도보선 + '도보 N분' 말풍선
+  useEffect(() => {
+    const map = mapRef.current;
+    const source = walkSourceRef.current;
+    if (!map || !source) return;
+    source.clear();
+    if (!walkLine) {
+      if (walkBubbleRef.current) map.removeOverlay(walkBubbleRef.current);
+      walkBubbleRef.current = null;
+      return;
+    }
+    const from = fromLonLat([walkLine.from.longitude, walkLine.from.latitude]);
+    const to = fromLonLat([walkLine.to.longitude, walkLine.to.latitude]);
+    source.addFeature(new Feature({ geometry: new LineString([from, to]) }));
+    // 직선을 먼저 그리고 도로 좌표가 오면 길을 따라가는 선으로 교체한다
+    const ctrl = new AbortController();
+    const a: LonLat = [walkLine.from.longitude, walkLine.from.latitude];
+    const b: LonLat = [walkLine.to.longitude, walkLine.to.latitude];
+    fetchRoadPath('foot', a, b, ctrl.signal).then((path) => {
+      if (ctrl.signal.aborted || !path) return;
+      source.clear();
+      source.addFeature(new Feature({ geometry: new LineString(withEnds(path.coords, a, b).map((p) => fromLonLat(p))) }));
+    });
+    if (!walkBubbleRef.current) {
+      const el = document.createElement('div');
+      el.className = 'px-2.5 py-1 rounded-full bg-[#F4F5F3] text-xs font-semibold text-[#14171C] whitespace-nowrap shadow-[0_2px_8px_rgba(20,23,28,0.25)]';
+      walkBubbleRef.current = new Overlay({ element: el, positioning: 'bottom-center', offset: [0, -30], stopEvent: false });
+      map.addOverlay(walkBubbleRef.current);
+    }
+    walkBubbleRef.current.getElement()!.textContent = walkLine.label;
+    walkBubbleRef.current.setPosition(to);
+    return () => ctrl.abort();
+  }, [walkLine]);
 
   // 강조 정류소 (검색 결과 또는 클릭한 정류소)
   useEffect(() => {
@@ -470,41 +552,14 @@ const TashuMap: React.FC<TashuMapProps> = ({
       const el = document.createElement('div');
       el.className = 'relative flex items-center justify-center';
       el.innerHTML = `
-        <div class="absolute w-9 h-9 bg-[#E8F5EE] rounded-full"></div>
-        <div class="relative w-3.5 h-3.5 bg-[#006A3C] rounded-full border-2 border-white"></div>
+        <div class="absolute w-9 h-9 bg-[#3B7DDD]/20 rounded-full"></div>
+        <div class="relative w-4 h-4 bg-[#3B7DDD] rounded-full border-[3px] border-white shadow-[0_1px_4px_rgba(20,23,28,0.3)]"></div>
       `;
       userMarkerRef.current = new Overlay({ element: el, positioning: 'center-center', stopEvent: false });
       map.addOverlay(userMarkerRef.current);
     }
     userMarkerRef.current.setPosition(fromLonLat([userLocation.longitude, userLocation.latitude]));
   }, [userLocation]);
-
-  // 목적지
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    if (!selectedDestination) {
-      if (destMarkerRef.current) map.removeOverlay(destMarkerRef.current);
-      destMarkerRef.current = null;
-      return;
-    }
-    if (!destMarkerRef.current) {
-      const el = document.createElement('div');
-      el.className = 'text-gray-900';
-      el.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3v1.5M3 21v-6m0 0 2.77-.693a9 9 0 0 1 6.208.682l.108.054a9 9 0 0 0 6.086.71l3.114-.732a48.524 48.524 0 0 1-.005-10.499l-3.11.732a9 9 0 0 1-6.085-.711l-.108-.054a9 9 0 0 0-6.208-.682L3 4.5M3 15V4.5" /></svg>`;
-      // 깃대 아래 끝이 좌표에 오도록 이미지 중심에서 이동
-      destMarkerRef.current = new Overlay({
-        element: el,
-        positioning: 'center-center',
-        offset: [12, -16],
-        stopEvent: false,
-      });
-      map.addOverlay(destMarkerRef.current);
-    }
-    destMarkerRef.current.setPosition(
-      fromLonLat([selectedDestination.longitude, selectedDestination.latitude])
-    );
-  }, [selectedDestination]);
 
   return (
     <div className="relative w-full h-full">
