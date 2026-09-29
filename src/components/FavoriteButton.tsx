@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { Station } from '../types/index';
-import { StarIcon, StarFilledIcon } from './icons';
+import UiIcon from './UiIcon';
 import { addFavorite, removeFavorite, isFavorite } from '../services/favoriteService';
 
 interface FavoriteButtonProps {
@@ -45,11 +45,7 @@ const FavoriteButton: React.FC<FavoriteButtonProps> = ({ station, onToggle }) =>
             aria-label={isFav ? '즐겨찾기 제거' : '즐겨찾기 추가'}
             title={isFav ? '즐겨찾기 제거' : '즐겨찾기 추가'}
         >
-            {isFav ? (
-                <StarFilledIcon className="w-5 h-5 text-primary" />
-            ) : (
-                <StarIcon className="w-5 h-5 text-gray-400" />
-            )}
+            <UiIcon name="star" filled={isFav} className={`w-5 h-5 ${isFav ? 'text-primary' : 'text-gray-400'}`} />
         </button>
     );
 };

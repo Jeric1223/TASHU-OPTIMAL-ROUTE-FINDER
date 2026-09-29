@@ -144,7 +144,7 @@ const FavoritesList: React.FC<FavoritesListProps> = ({ onBack, onStationSelect, 
                                                 aria-label={`${title} 카카오맵 길찾기`}
                                                 className="press w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant [@media(hover:hover)]:hover:bg-gray-100 [@media(hover:hover)]:hover:text-on-surface"
                                             >
-                                                <span className="material-symbols-outlined">near_me</span>
+                                                <UiIcon name="navigate" />
                                             </a>
                                             <button
                                                 onClick={() => startEdit(fav)}
