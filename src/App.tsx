@@ -1,21 +1,21 @@
 import React, { useState, useCallback, useEffect, useMemo } from "react";
 import type { Station, StationWithDistance, Coordinates, LocationSearchResult, OptimalRoute, FavoriteStation } from "./types/index";
 import { getCurrentLocation } from "./services/locationService";
-import { findNearestStation, findNearestAvailableStation, fetchTashuStations, haversineDistance } from "./services/tashuService";
-import DestinationSearch from "./components/DestinationSearch";
+import { findNearestAvailableStation, fetchTashuStations, haversineDistance } from "./services/tashuService";
+import { getFavorites } from "./services/favoriteService";
+import UiIcon from "./components/UiIcon";
 import FavoritesList from "./components/FavoritesList";
 import RouteSearch from "./components/RouteSearch";
 import RouteResult from "./components/RouteResult";
-import InstallPrompt from "./components/InstallPrompt";
 import TashuMap from "./components/TashuMap";
-import StationCard from "./components/StationCard";
-import Sheet, { SheetSnap, snapHeightPx } from "./components/Sheet";
-import { searchKakaoLocation } from "./services/kakoApiService";
+import StationDeck from "./components/StationDeck";
+import SegToggle from "./components/SegToggle";
+import { useCountUp } from "./hooks/useCountUp";
+import { formatDistance, walkMinutes } from "./components/StationDeck";
 import "./styles/index.css";
 
 export enum Tab {
     Nearby = "NEARBY",
-    Destination = "DESTINATION",
     Route = "ROUTE",
     Favorites = "FAVORITES",
     More = "MORE",
@@ -24,7 +24,8 @@ export enum Tab {
 const App: React.FC = () => {
     const [activeTab, setActiveTab] = useState<Tab>(Tab.Nearby);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [sheetSnap, setSheetSnap] = useState<SheetSnap>('peek');
+    const [selIdx, setSelIdx] = useState(0);
+    const [nearbyFilter, setNearbyFilter] = useState<'all' | 'avail'>('all');
 
     const [stations, setStations] = useState<Station[]>([]);
     const [isDataLoading, setIsDataLoading] = useState<boolean>(true);
@@ -33,10 +34,7 @@ const App: React.FC = () => {
     const [isSearching, setIsSearching] = useState<boolean>(false);
     const [searchError, setSearchError] = useState<string | null>(null);
 
-    const [destinationResult, setDestinationResult] = useState<StationWithDistance | null>(null);
     const [nearbyResult, setNearbyResult] = useState<StationWithDistance | null>(null);
-    const [destinationSearchResults, setDestinationSearchResults] = useState<LocationSearchResult[] | null>(null);
-    const [selectedDestination, setSelectedDestination] = useState<Coordinates | null>(null);
     const [selectedStationOnMap, setSelectedStationOnMap] = useState<StationWithDistance | null>(null);
 
     const [mapCenter, setMapCenter] = useState<[number, number]>([36.351, 127.385]);
@@ -47,7 +45,10 @@ const App: React.FC = () => {
     const [currentRoute, setCurrentRoute] = useState<OptimalRoute | null>(null);
 
     const [routeStartStation, setRouteStartStation] = useState<LocationSearchResult | null>(null);
-    const [routeEndStation, setRouteEndStation] = useState<LocationSearchResult | null>(null);
+    // 값이 바뀔 때마다 경로 화면의 도착 입력에 포커스를 준다
+    const [routeFocus, setRouteFocus] = useState(0);
+    // 즐겨찾기 탭 지도에 그릴 정류소 id
+    const [favoriteIds, setFavoriteIds] = useState<string[]>(() => getFavorites().map(f => f.id));
 
     const loadStations = useCallback(async () => {
         setIsDataLoading(true);
@@ -67,9 +68,6 @@ const App: React.FC = () => {
         setSearchError(null);
         setNearbyResult(null);
         setUserLocation(null);
-        setSelectedDestination(null);
-        setDestinationSearchResults(null);
-        setDestinationResult(null);
         setSelectedStationOnMap(null);
         try {
             const userCoords = await getCurrentLocation();
@@ -82,8 +80,6 @@ const App: React.FC = () => {
             } else {
                 setMapCenter([userCoords.latitude, userCoords.longitude]);
                 setMapZoom(16);
-                setSearchError("현재 위치 근처에 대여 가능한 타슈가 있는 정류소가 없습니다.");
-                setTimeout(() => setSearchError(null), 3000);
             }
         } catch (err) {
             setSearchError(err instanceof Error ? err.message : "위치 정보 접근 권한이 거부되었습니다.");
@@ -110,6 +106,32 @@ const App: React.FC = () => {
             .slice(0, 20);
     }, [stations, userLocation]);
 
+    const visibleStations = useMemo(
+        () => nearbyFilter === 'avail' ? nearbyStations.filter(st => st.parking_count > 0) : nearbyStations,
+        [nearbyStations, nearbyFilter]
+    );
+
+    // 카드 덱 선택: 지도 강조·중심을 함께 옮긴다
+    const selectIdx = useCallback((i: number) => {
+        const st = visibleStations[i];
+        if (!st) return;
+        setSelIdx(i);
+        setSelectedStationOnMap(st);
+        setMapCenter([st.x_pos, st.y_pos]);
+        setMapZoom(16);
+    }, [visibleStations]);
+
+    const selected = visibleStations[selIdx];
+    const heroCount = useCountUp(selected?.parking_count ?? 0);
+
+    // 목록이 새로 채워지거나 필터가 바뀌면 첫 카드를 선택한다
+    const visibleKey = visibleStations.map(st => st.id).join(',');
+    useEffect(() => {
+        if (activeTab !== Tab.Nearby || visibleStations.length === 0) return;
+        selectIdx(0);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [visibleKey]);
+
     const handleStationSelect = useCallback((station: FavoriteStation) => {
         const stationWithDistance: StationWithDistance = {
             ...station,
@@ -118,7 +140,6 @@ const App: React.FC = () => {
         setSelectedStationOnMap(stationWithDistance);
         setMapCenter([station.x_pos, station.y_pos]);
         setMapZoom(16);
-        setSheetSnap('half');
     }, []);
 
     const handleSetRouteStart = useCallback((station: StationWithDistance) => {
@@ -129,68 +150,8 @@ const App: React.FC = () => {
             coords: { latitude: station.x_pos, longitude: station.y_pos },
         };
         setRouteStartStation(routeStart);
+        setRouteFocus(n => n + 1);
         setActiveTab(Tab.Route);
-    }, []);
-
-    const handleSetRouteEnd = useCallback((station: StationWithDistance) => {
-        const routeEnd: LocationSearchResult = {
-            name: station.name,
-            address: station.address,
-            roadAddress: station.address,
-            coords: { latitude: station.x_pos, longitude: station.y_pos },
-        };
-        setRouteEndStation(routeEnd);
-        setActiveTab(Tab.Route);
-    }, []);
-
-    const handleDestinationSearch = useCallback(async (destination: string) => {
-        if (!destination) { setSearchError("목적지를 입력해주세요."); return; }
-        setIsSearching(true);
-        setSearchError(null);
-        setDestinationResult(null);
-        setDestinationSearchResults(null);
-        setSelectedDestination(null);
-        setUserLocation(null);
-        try {
-            const results = await searchKakaoLocation(destination);
-            if (results.length === 0) {
-                setSearchError("검색 결과가 없습니다. 다른 검색어로 시도해 보세요.");
-            } else {
-                setDestinationSearchResults(results);
-                setMapCenter([results[0].coords.latitude, results[0].coords.longitude]);
-                setMapZoom(15);
-            }
-        } catch (err) {
-            setSearchError(err instanceof Error ? err.message : "장소 검색에 실패했습니다.");
-        } finally {
-            setIsSearching(false);
-        }
-    }, []);
-
-    const handleSelectSearchResult = useCallback((result: LocationSearchResult) => {
-        setSelectedDestination(result.coords);
-        setDestinationSearchResults(null);
-        setSelectedStationOnMap(null);
-        const nearestStation = findNearestStation(result.coords, stations);
-        if (nearestStation) {
-            setDestinationResult(nearestStation);
-            const newCenterLat = (result.coords.latitude + nearestStation.x_pos) / 2;
-            const newCenterLng = (result.coords.longitude + nearestStation.y_pos) / 2;
-            setMapCenter([newCenterLat, newCenterLng]);
-            setMapZoom(15);
-        } else {
-            setSearchError("가까운 타슈 정류소를 찾지 못했습니다.");
-            setMapCenter([result.coords.latitude, result.coords.longitude]);
-            setMapZoom(16);
-        }
-    }, [stations]);
-
-    const handleClearDestinationSearch = useCallback(() => {
-        setDestinationSearchResults(null);
-        setDestinationResult(null);
-        setSelectedDestination(null);
-        setSearchError(null);
-        setSelectedStationOnMap(null);
     }, []);
 
     const handleGoToUserLocation = useCallback(async () => {
@@ -207,7 +168,6 @@ const App: React.FC = () => {
         }
     }, []);
 
-    // 지도 버튼: 지금 위치에서 가장 가까운 "대여 가능" 정류소로 이동해 상세를 half로 연다.
     // 사용자가 이동했을 수 있으므로 위치는 매번 새로 받는다.
     const handleGoToNearestStation = useCallback(async () => {
         setIsFindingNearest(true);
@@ -215,17 +175,12 @@ const App: React.FC = () => {
             const userCoords = await getCurrentLocation();
             setUserLocation(userCoords);
             const nearest = findNearestAvailableStation(userCoords, stations);
-            if (!nearest) {
-                setSearchError("현재 위치 근처에 대여 가능한 타슈가 있는 정류소가 없습니다.");
-                setTimeout(() => setSearchError(null), 3000);
-                return;
-            }
+            if (!nearest) return;
             setActiveTab(Tab.Nearby);
             setNearbyResult(nearest);
             setSelectedStationOnMap(nearest);
             setMapCenter([nearest.x_pos, nearest.y_pos]);
             setMapZoom(16);
-            setSheetSnap('half');
         } catch (err) {
             setSearchError(err instanceof Error ? err.message : "위치 정보 접근 권한이 거부되었습니다.");
         } finally {
@@ -234,34 +189,42 @@ const App: React.FC = () => {
     }, [stations]);
 
     const handleStationClick = useCallback((station: Station) => {
-        let referenceCoords: Coordinates | null = null;
-        if (activeTab === Tab.Nearby && userLocation) referenceCoords = userLocation;
-        else if (activeTab === Tab.Destination && selectedDestination) referenceCoords = selectedDestination;
-
-        const stationWithDistance: StationWithDistance = { ...station };
-        if (referenceCoords) {
-            stationWithDistance.distance = haversineDistance(referenceCoords, { latitude: station.x_pos, longitude: station.y_pos });
+        if (activeTab === Tab.Nearby) {
+            const idx = visibleStations.findIndex(v => v.id === station.id);
+            if (idx >= 0) { selectIdx(idx); return; }
         }
-        setSelectedStationOnMap(stationWithDistance);
-        setDestinationResult(null);
+        setSelectedStationOnMap({ ...station });
         setNearbyResult(null);
         setMapCenter([station.x_pos, station.y_pos]);
         setMapZoom(16);
-        // 상세는 half로 연다 — full이면 방금 누른 정류소와 지도가 시트에 가려진다
-        if (activeTab === Tab.Nearby) setSheetSnap('half');
-    }, [activeTab, userLocation, selectedDestination]);
+    }, [activeTab, visibleStations, selectIdx]);
 
-    const handleRouteFound = (route: OptimalRoute) => {
-        setCurrentRoute(route);
-        setMapCenter([route.startStation.x_pos, route.startStation.y_pos]);
-        setMapZoom(14);
-    };
-
-    // 지도 빈 곳 탭: 정류소 상세를 닫고 시트를 끝까지 내려 지도를 다시 보여준다
-    const handleMapBackgroundClick = useCallback(() => {
-        setSelectedStationOnMap(null);
-        setSheetSnap('peek');
+    const openRouteSearch = useCallback(() => {
+        setRouteFocus(n => n + 1);
+        setActiveTab(Tab.Route);
     }, []);
+
+    // 오류 안내는 몇 초 뒤 스스로 사라진다
+    useEffect(() => {
+        if (!searchError) return;
+        const t = setTimeout(() => setSearchError(null), 4000);
+        return () => clearTimeout(t);
+    }, [searchError]);
+
+    // 즐겨찾기 탭에 들어올 때마다 저장 목록을 다시 읽는다
+    useEffect(() => {
+        if (activeTab === Tab.Favorites) setFavoriteIds(getFavorites().map(f => f.id));
+    }, [activeTab]);
+
+    // 선택한 정류소까지 내 위치에서 걷는 선과 소요 시간 (주변 탭)
+    const walkLine = useMemo(() => {
+        if (activeTab !== Tab.Nearby || !userLocation || !selected) return null;
+        return {
+            from: userLocation,
+            to: { latitude: selected.x_pos, longitude: selected.y_pos },
+            label: `도보 ${walkMinutes(selected.distance ?? 0)}분`,
+        };
+    }, [activeTab, userLocation, selected]);
 
     // 데이터 로딩 화면
     if (isDataLoading && stations.length === 0) {
@@ -283,7 +246,7 @@ const App: React.FC = () => {
                     <button
                         onClick={loadStations}
                         disabled={isDataLoading}
-                        className="w-full bg-primary text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all"
+                        className="w-full bg-primary text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 press"
                     >
                         <span className="material-symbols-outlined text-sm">refresh</span>
                         재시도
@@ -302,54 +265,53 @@ const App: React.FC = () => {
                     center={mapCenter}
                     zoom={mapZoom}
                     userLocation={userLocation}
-                    searchResult={nearbyResult || destinationResult}
-                    selectedDestination={selectedDestination}
+                    searchResult={nearbyResult}
+                    visibleStationIds={activeTab === Tab.Favorites ? favoriteIds : null}
+                    walkLine={walkLine}
                     onStationClick={handleStationClick}
-                    onMapClick={handleMapBackgroundClick}
                     clickedStationId={selectedStationOnMap?.id}
                     route={currentRoute}
+                    hideStations={activeTab === Tab.Route && !!currentRoute}
                     coveredInsets={{
-                        // 상단 검색바(안전영역 포함)와 하단 탭바+시트가 지도를 덮는 높이. 마운트 전엔 기본값.
+                        // 상단 검색·필터·문장 묶음과 하단 탭바+카드 덱이 지도를 덮는 높이. 마운트 전엔 기본값.
                         top: document.querySelector<HTMLElement>('header')?.offsetHeight ?? 68,
                         bottom: (document.querySelector<HTMLElement>('nav.bottom-nav')?.offsetHeight ?? 72)
-                            + (activeTab === Tab.Nearby ? snapHeightPx(sheetSnap) : 0),
+                            + (activeTab === Tab.Nearby ? (document.querySelector<HTMLElement>('.station-deck')?.offsetHeight ?? 232) : 0),
                     }}
                 />
             </div>
 
-            {/* ── 상단 검색 트리거 (필-헤더 아님: 플랫, 그림자 없음) ── */}
-            <header className="fixed top-0 inset-x-0 z-[var(--z-overlay)] pt-safe px-4">
-                <div className="flex items-center h-14 mt-3 px-2 gap-1 liquid-glass rounded-2xl">
+            {/* ── 상단: 검색 알약 + 필터 토글 + 한 문장 (지도 위에 떠 있는 유리) ── */}
+            {activeTab === Tab.Nearby && (
+                <header className="fixed top-0 inset-x-3 z-[var(--z-overlay)] pt-safe grid gap-2 justify-items-start min-[900px]:right-auto min-[900px]:w-[380px] min-[900px]:left-4 min-[900px]:top-4 min-[900px]:pt-0">
                     <button
-                        onClick={() => setIsSidebarOpen(true)}
-                        className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-surface-container-low transition-colors text-on-surface active:scale-95"
-                        aria-label="메뉴"
+                        onClick={openRouteSearch}
+                        className="press nav-pill w-full min-h-[52px] flex items-center gap-2.5 px-[18px] rounded-[26px] text-base text-on-surface-variant text-left"
                     >
-                        <span className="material-symbols-outlined">menu</span>
+                        <UiIcon name="search" className="w-[22px] h-[22px]" />
+                        어디로 갈까요?
+                        {isDataLoading && <span className="ml-auto w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />}
                     </button>
-                    <button
-                        className="flex-1 flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-surface-container-low transition-colors text-left"
-                        onClick={() => setActiveTab(Tab.Destination)}
-                    >
-                        <span className="material-symbols-outlined text-outline text-lg">search</span>
-                        <span className="text-outline text-sm font-medium">어디로 갈까요?</span>
-                    </button>
-                    {isDataLoading && (
-                        <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin mr-2" />
-                    )}
-                </div>
-            </header>
+                    <SegToggle value={nearbyFilter} onChange={setNearbyFilter} className="w-[208px] nav-pill !bg-gray-100/90" />
+                    <p key={selected?.id ?? 'none'} className="nav-pill animate-slide-up px-4 py-2.5 rounded-[20px] text-[15px] font-semibold leading-snug text-on-surface">
+                        {selected
+                            ? selected.parking_count === 0
+                                ? <><b className="text-[17px] font-bold">{formatDistance(selected.distance ?? 0)}</b> 앞 정류소는 자전거가 없어요</>
+                                : <><b className="text-[17px] font-bold">{formatDistance(selected.distance ?? 0)}</b> 앞에 자전거가 <b className="text-[17px] font-bold tabular-nums">{heroCount}</b>대 있어요</>
+                            : isSearching ? '주변 정류소를 찾는 중이에요' : '위치를 켜면 가까운 자전거를 알려드려요'}
+                    </p>
+                </header>
+            )}
 
             {/* ── 지도 컨트롤 (우측) — 시트 상단 위에 고정 ── */}
             <div
-                // 시트가 full이면 컨트롤이 시트 위로 밀려 검색바와 겹친다 — 지도가 안 보이는 상태이므로 숨긴다
-                className={`fixed right-4 z-[var(--z-overlay)] flex flex-col gap-3 ${activeTab === Tab.Nearby && sheetSnap === 'full' ? 'hidden' : ''}`}
-                style={{ bottom: activeTab === Tab.Nearby ? 'calc(var(--nav-h) + var(--sheet-h) + 16px)' : 'calc(var(--nav-h) + 16px)' }}
+                className={`fixed right-4 z-[var(--z-overlay)] flex-col gap-3 ${activeTab === Tab.Route || activeTab === Tab.Favorites ? 'hidden' : 'flex'}`}
+                style={{ bottom: activeTab === Tab.Nearby ? 'calc(var(--nav-h) + var(--deck-h) + 8px)' : 'calc(var(--nav-h) + 16px)' }}
             >
                 <button
                     onClick={loadStations}
                     disabled={isDataLoading}
-                    className="w-12 h-12 liquid-glass text-on-surface-variant rounded-full flex items-center justify-center active:scale-90 transition-all disabled:opacity-50"
+                    className="w-12 h-12 liquid-glass text-on-surface-variant rounded-full flex items-center justify-center press disabled:opacity-50"
                 >
                     <span className={`material-symbols-outlined ${isDataLoading ? 'animate-spin' : ''}`}>refresh</span>
                 </button>
@@ -357,101 +319,38 @@ const App: React.FC = () => {
                     onClick={handleGoToNearestStation}
                     disabled={isFindingNearest}
                     aria-label="가장 가까운 대여 가능 정류소"
-                    className="w-12 h-12 liquid-glass text-primary rounded-full flex items-center justify-center active:scale-90 transition-all disabled:opacity-50"
+                    className="w-12 h-12 liquid-glass text-primary rounded-full flex items-center justify-center press disabled:opacity-50"
                 >
                     <span className="material-symbols-outlined">route</span>
                 </button>
                 <button
                     onClick={handleGoToUserLocation}
                     disabled={isCentering}
-                    className="w-12 h-12 liquid-glass text-primary rounded-full flex items-center justify-center active:scale-90 transition-all"
+                    className="w-12 h-12 liquid-glass text-primary rounded-full flex items-center justify-center press"
                 >
                     <span className="material-symbols-outlined filled">my_location</span>
                 </button>
             </div>
 
-            {/* ── 화면 1·2: 주변 정류소 목록 + 상세 (단일 Sheet) ── */}
+            {/* ── 주변 정류소 카드 덱 (가운데 카드 = 선택) ── */}
             {activeTab === Tab.Nearby && (
-                <Sheet
-                    snap={sheetSnap}
-                    onSnapChange={setSheetSnap}
-                    peekContent={
-                        selectedStationOnMap ? null : (
-                            // 리스트 항목과 같은 동작: 눌러서 해당 정류소 상세를 편다.
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    if (nearbyResult) setSelectedStationOnMap(nearbyResult);
-                                    setSheetSnap(nearbyResult ? 'half' : 'full');
-                                }}
-                                className="w-full text-left flex items-center justify-between border-b border-outline-variant pb-3 active:opacity-70 transition-opacity"
-                            >
-                                <div className="min-w-0">
-                                    <p className="text-[13px] font-semibold text-on-surface-variant">
-                                        {/* findNearestAvailableStation은 parking_count > 0만 남긴다.
-                                            "가장 가까운 정류소"가 아니라 "빌릴 수 있는" 정류소다. */}
-                                        {nearbyResult ? '가장 가까운 대여 가능 정류소' : '내 주변 정류소'}
-                                    </p>
-                                    <p className="text-base font-headline font-bold text-on-surface truncate">
-                                        {nearbyResult ? nearbyResult.name : `${nearbyStations.length}곳 검색됨`}
-                                    </p>
-                                </div>
-                                {nearbyResult && (
-                                    <span className="text-2xl font-headline font-black text-primary flex-shrink-0 ml-3">
-                                        {nearbyResult.parking_count}<span className="text-xs font-bold ml-0.5">대</span>
-                                    </span>
-                                )}
-                            </button>
-                        )
+                <StationDeck
+                    stations={visibleStations}
+                    selectedIndex={selIdx}
+                    onSelect={selectIdx}
+                    onMakeRoute={handleSetRouteStart}
+                    onShowAll={() => setNearbyFilter('all')}
+                    emptyMessage={
+                        nearbyStations.length > 0
+                            ? { title: '대여 가능한 정류소가 없어요', sub: '잠시 후 다시 확인하거나 전체 정류소를 보세요', canShowAll: true }
+                            : { title: isSearching ? '주변 정류소를 찾는 중...' : '주변 정류소가 없어요', sub: '위치 정보를 불러오면 가까운 정류소가 표시됩니다.', canShowAll: false }
                     }
-                >
-                    {selectedStationOnMap ? (
-                        // 닫기는 지도 빈 곳 탭(handleMapBackgroundClick) 또는 시트 손잡이로 한다
-                        <StationCard
-                            station={selectedStationOnMap}
-                            onSetAsStart={handleSetRouteStart}
-                            onSetAsEnd={handleSetRouteEnd}
-                        />
-                    ) : (
-                        <div>
-                            {nearbyStations.length === 0 && (
-                                <p className="text-sm text-on-surface-variant py-8 text-center">
-                                    {isSearching ? '주변 정류소를 찾는 중...' : '위치 정보를 불러오면 주변 정류소가 표시됩니다.'}
-                                </p>
-                            )}
-                            {nearbyStations.map((s) => (
-                                <button
-                                    key={s.id}
-                                    onClick={() => {
-                                        setSelectedStationOnMap(s);
-                                        setMapCenter([s.x_pos, s.y_pos]);
-                                        setMapZoom(16);
-                                        setSheetSnap('half');
-                                    }}
-                                    className="w-full flex items-center justify-between gap-3 py-3 border-b border-outline-variant last:border-0 text-left"
-                                >
-                                    <div className="min-w-0">
-                                        <p className="text-sm font-bold text-on-surface truncate">{s.name}</p>
-                                        <p className="text-xs text-on-surface-variant truncate">{s.address}</p>
-                                    </div>
-                                    <div className="flex items-center gap-3 flex-shrink-0">
-                                        <span className="text-xs text-on-surface-variant">
-                                            {s.distance! < 1 ? `${Math.round(s.distance! * 1000)}m` : `${s.distance!.toFixed(1)}km`}
-                                        </span>
-                                        <span className={`text-sm font-bold ${s.parking_count > 0 ? 'text-primary' : 'text-gray-400'}`}>
-                                            {s.parking_count}대
-                                        </span>
-                                    </div>
-                                </button>
-                            ))}
-                        </div>
-                    )}
-                </Sheet>
+                />
             )}
 
-            {/* ── 내 주변 탭 에러 안내 ── */}
-            {activeTab === Tab.Nearby && searchError && !isSearching && sheetSnap === 'peek' && (
-                <div className="fixed left-4 right-4 z-[var(--z-overlay)] animate-slide-up" style={{ bottom: 'calc(var(--nav-h) + var(--sheet-h) + 12px)' }}>
+            {/* ── 오류 안내 ── */}
+            {searchError && !isSearching && (
+                <div className="fixed left-4 right-4 z-[var(--z-modal)] animate-slide-up" style={{ bottom: activeTab === Tab.Nearby ? 'calc(var(--nav-h) + var(--deck-h) + 12px)' : 'calc(var(--nav-h) + 12px)' }}>
                     <div className="liquid-glass-thick rounded-2xl px-4 py-3 text-[var(--danger)] flex items-start gap-3">
                         <span className="material-symbols-outlined text-sm mt-0.5">error</span>
                         <p className="text-sm">{searchError}</p>
@@ -460,83 +359,71 @@ const App: React.FC = () => {
             )}
 
             {/* ── 하단 내비게이션 바 (주변/경로/즐겨찾기/더보기) ── */}
-            {/* padding은 하단 안전영역만 — pt-3/pb-safe(최소 24px)를 주면 72px 중 36px만 남아 탭이 위로 쏠린다 */}
-            <nav className="fixed bottom-0 w-full z-[var(--z-nav)] flex justify-around items-center px-4 bottom-nav" style={{ height: 'var(--nav-h)', paddingBottom: 'var(--safe-area-inset-bottom)' }}>
+            {/* nav는 --nav-h 높이의 투명 영역(시트 위치·높이 계산이 이 높이를 잰다). 보이는 알약은 안쪽 .nav-pill.
+                아래 여백 = 안전영역 + 8px, 위 여백 4px → 알약 높이 60px */}
+            <nav className="fixed bottom-0 inset-x-0 z-[var(--z-nav)] px-4 pt-1 bottom-nav" style={{ height: 'var(--nav-h)', paddingBottom: 'calc(var(--safe-area-inset-bottom) + 8px)' }}>
+              <div className="nav-pill h-full rounded-[30px] p-1.5 grid grid-cols-4 gap-1">
                 <NavTab
-                    icon="explore"
+                    icon={<UiIcon name="compass" />}
                     label="주변"
                     active={activeTab === Tab.Nearby}
                     onClick={() => {
                         setActiveTab(Tab.Nearby);
-                        setSheetSnap('peek');
                         handleNearbySearch();
                     }}
                 />
                 <NavTab
-                    icon="near_me"
+                    icon={<UiIcon name="route" />}
                     label="경로"
                     active={activeTab === Tab.Route}
                     onClick={() => setActiveTab(Tab.Route)}
                 />
                 <NavTab
-                    icon="favorite"
+                    icon={<UiIcon name="heart" />}
                     label="즐겨찾기"
                     active={activeTab === Tab.Favorites}
                     onClick={() => setActiveTab(Tab.Favorites)}
                 />
                 <NavTab
-                    icon="more_horiz"
+                    icon={<UiIcon name="more" />}
                     label="더보기"
                     active={isSidebarOpen}
                     onClick={() => setIsSidebarOpen(true)}
                 />
+              </div>
             </nav>
 
-            {/* ── 목적지 검색 오버레이 ── */}
-            {activeTab === Tab.Destination && (
-                <DestinationSearch
-                    onSearch={handleDestinationSearch}
-                    onSelectResult={handleSelectSearchResult}
-                    onClear={handleClearDestinationSearch}
-                    onBack={() => setActiveTab(Tab.Nearby)}
-                    searchResults={destinationSearchResults}
-                    result={destinationResult}
-                    loading={isSearching}
-                    error={searchError}
-                    onSetAsStart={handleSetRouteStart}
-                    onSetAsEnd={handleSetRouteEnd}
-                />
-            )}
-
-            {/* ── 경로 탭 오버레이 ── */}
+            {/* ── 경로 탭 (시안 D): 지도 위 유리 입력 폼 + 아래 결과 시트. 시트는 늘 떠 있고 내용만 바뀐다 ── */}
             {activeTab === Tab.Route && (
-                <div className="fixed inset-0 z-[70] flex flex-col animate-fade-in pt-safe" style={{ bottom: 'var(--nav-h)' }}>
-                    <div className="absolute inset-0 bg-white" />
-                    <div className="relative z-10 flex flex-col h-full">
-                        <header className="flex items-center px-2 h-14 mt-3 mx-4 border-b border-outline-variant">
-                            <button
-                                onClick={() => setActiveTab(Tab.Nearby)}
-                                className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-surface-container-low transition-colors text-on-surface active:scale-95"
-                            >
-                                <span className="material-symbols-outlined">arrow_back</span>
-                            </button>
-                            <div className="flex-1 flex justify-center">
-                                <h1 className="font-headline font-bold text-lg text-on-surface">경로 찾기</h1>
+                <div className="fixed inset-0 z-[var(--z-sheet)] pointer-events-none animate-fade-in">
+                    <section
+                        aria-label="경로 요약"
+                        className="pointer-events-auto absolute inset-x-0 bottom-0 flex flex-col rounded-t-[28px] bg-surface shadow-[0_-8px_32px_rgba(20,23,28,0.12),0_0_0_1px_rgba(20,23,28,0.05)] min-[900px]:inset-x-auto min-[900px]:left-4 min-[900px]:w-[400px] min-[900px]:top-[148px] min-[900px]:bottom-4 min-[900px]:rounded-3xl"
+                        style={{ top: 'calc(46% - 24px)' }}
+                    >
+                        {currentRoute ? (
+                            <RouteResult route={currentRoute} />
+                        ) : (
+                            <div className="flex-1 overflow-y-auto px-4 pt-[22px] no-scrollbar" style={{ paddingBottom: 'calc(var(--nav-h) + 40px)' }}>
+                                <h1 className="font-headline font-bold text-[26px] leading-[1.4] text-on-surface" style={{ textWrap: 'balance' }}>어디서 어디까지 가세요?</h1>
+                                <p className="mt-2 text-[15px] leading-relaxed text-on-surface-variant" style={{ textWrap: 'pretty' }}>
+                                    출발지와 도착지를 모두 입력하면 걸리는 시간과 단계를 보여드려요.
+                                </p>
                             </div>
-                            <div className="w-10" />
-                        </header>
-                        <div className="flex-1 overflow-y-auto pt-4 px-4 pb-8 no-scrollbar">
-                            {!currentRoute
-                                ? <RouteSearch
-                                    stations={stations}
-                                    onRouteFound={handleRouteFound}
-                                    onError={(e) => setSearchError(e)}
-                                    initialStart={routeStartStation}
-                                    initialDest={routeEndStation}
-                                  />
-                                : <RouteResult route={currentRoute} onClose={() => setCurrentRoute(null)} />
-                            }
-                        </div>
+                        )}
+                    </section>
+                    <div
+                        className="absolute inset-x-3 grid gap-2 min-[900px]:right-auto min-[900px]:left-4 min-[900px]:w-[380px] min-[900px]:!top-4"
+                        style={{ top: 'calc(var(--safe-area-inset-top) + 12px)' }}
+                    >
+                        <RouteSearch
+                            stations={stations}
+                            onRouteFound={setCurrentRoute}
+                            onRouteClear={() => setCurrentRoute(null)}
+                            onError={setSearchError}
+                            initialStart={routeStartStation}
+                            focusDestToken={routeFocus}
+                        />
                     </div>
                 </div>
             )}
@@ -545,9 +432,8 @@ const App: React.FC = () => {
             {activeTab === Tab.Favorites && (
                 <FavoritesList
                     onBack={() => setActiveTab(Tab.Nearby)}
-                    onNavigateToMap={() => setActiveTab(Tab.Nearby)}
-                    onNavigateToRoute={() => setActiveTab(Tab.Route)}
                     onStationSelect={handleStationSelect}
+                    onIdsChange={setFavoriteIds}
                     userLocation={userLocation}
                 />
             )}
@@ -592,13 +478,12 @@ const App: React.FC = () => {
                 </>
             )}
 
-            <InstallPrompt />
         </div>
     );
 };
 
 interface NavTabProps {
-    icon: string;
+    icon: React.ReactNode;
     label: string;
     active: boolean;
     onClick: () => void;
@@ -607,13 +492,14 @@ interface NavTabProps {
 const NavTab: React.FC<NavTabProps> = ({ icon, label, active, onClick }) => (
     <button
         onClick={onClick}
-        className={`flex flex-col items-center justify-center gap-0.5 px-4 py-2 rounded-xl transition-all active:scale-90 ${
+        aria-current={active ? 'page' : undefined}
+        className={`press flex flex-col items-center justify-center gap-0.5 min-h-[44px] rounded-[24px] transition-colors ${
             active
-                ? 'bg-primary-container text-primary'
-                : 'text-on-surface-variant hover:text-on-surface'
+                ? 'bg-gray-900/[0.08] text-on-surface'
+                : 'text-on-surface-variant [@media(hover:hover)]:hover:bg-gray-900/[0.05] [@media(hover:hover)]:hover:text-on-surface'
         }`}
     >
-        <span className={`material-symbols-outlined ${active ? 'filled' : ''}`}>{icon}</span>
+        {icon}
         <span className="text-[11px] font-semibold font-label">{label}</span>
     </button>
 );

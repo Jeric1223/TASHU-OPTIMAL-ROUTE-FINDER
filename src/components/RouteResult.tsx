@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import type { OptimalRoute } from '../types/index';
 import { loadKakaoSdk } from '../services/kakaoSdkLoader';
+import { useCountUp } from '../hooks/useCountUp';
+import { addFavorite, isFavorite } from '../services/favoriteService';
 
 interface RouteResultProps {
     route: OptimalRoute;
-    onClose?: () => void;
 }
 
 // WGS84 → WCONGNAMUL 변환 (카카오맵 URL rt 파라미터용)
@@ -36,7 +37,7 @@ const toWcong = async (lng: number, lat: number): Promise<{ x: number; y: number
     }
 };
 
-const RouteResult: React.FC<RouteResultProps> = ({ route, onClose }) => {
+const RouteResult: React.FC<RouteResultProps> = ({ route }) => {
     const formatDuration = (minutes: number) =>
         minutes < 60 ? `${minutes}분` : `${Math.floor(minutes / 60)}시간 ${minutes % 60}분`;
 
@@ -87,129 +88,88 @@ const RouteResult: React.FC<RouteResultProps> = ({ route, onClose }) => {
     // 네이버지도 자전거 경로 URL
     const naverUrl =`https://map.naver.com/p/directions/${startLng},${startLat},${encodeURIComponent(startName)}/${endLng},${endLat},${encodeURIComponent(endName)}/-/bike?c=15.00,0,0,0,dh`;
 
+    const minutes = useCountUp(route.totalDuration);
+
+    // 시안의 '경로 저장': 출발 정류소를 즐겨찾기에 쌓는다
+    const [saved, setSaved] = useState(() => isFavorite(route.startStation.id));
+    useEffect(() => { setSaved(isFavorite(route.startStation.id)); }, [route.startStation.id]);
+    const handleSave = () => {
+        if (saved) return;
+        if (addFavorite(route.startStation)) setSaved(true);
+    };
+    const noBikes = route.startStation.parking_count === 0;
+
     return (
-        <div className="space-y-4 animate-fade-in">
-            {/* 경로 요약 카드 */}
-            <div className="bg-white rounded-lg p-5 border border-outline-variant flex items-center justify-between">
-                <div>
-                    <div className="flex items-baseline gap-2 mb-1">
-                        <span className="font-headline text-4xl font-extrabold tracking-tighter text-primary">
-                            {formatDuration(route.totalDuration)}
-                        </span>
-                        <span className="text-on-surface-variant font-medium text-sm">
-                            {route.totalDistance.toFixed(1)}km
-                        </span>
-                    </div>
-                    <span className="bg-primary-container text-primary px-3 py-0.5 rounded-full text-[11px] font-semibold">
-                        최적 경로
-                    </span>
-                </div>
-                <div className="w-14 h-14 bg-primary-container rounded-lg flex items-center justify-center">
-                    <span className="material-symbols-outlined text-primary text-2xl filled">directions_bike</span>
-                </div>
-            </div>
-
-            {/* 상세 경로 */}
-            <div className="bg-white rounded-lg p-5 border border-outline-variant">
-                <h2 className="font-headline text-base font-bold mb-5 flex items-center gap-2 text-on-surface">
-                    <span className="material-symbols-outlined text-primary text-lg">route</span>
-                    상세 경로
+        // 위는 스크롤되는 요약, 아래는 시트 바닥에 고정되는 CTA 바
+        <div className="flex flex-col flex-1 min-h-0">
+            <div className="flex-1 overflow-y-auto overscroll-contain px-4 pt-[22px] pb-6 no-scrollbar animate-fade-in">
+                {/* 결론 문장 먼저 */}
+                <p className="text-sm text-on-surface-variant">
+                    {route.startStation.name} → {route.endStation.name}
+                </p>
+                <h2 className="mt-1.5 font-headline font-bold text-[26px] leading-[1.4] text-on-surface min-[900px]:text-[28px]" style={{ textWrap: 'balance' }}>
+                    약 <span className="tabular-nums">{minutes}</span>분 걸려요
                 </h2>
+                <p className="mt-1.5 text-[15px] text-on-surface-variant">
+                    총 {route.totalDistance.toFixed(1)}km · 출발 정류소 대여 {route.startStation.parking_count}대
+                </p>
+                {noBikes && (
+                    <p role="status" className="mt-3.5 rounded-2xl bg-[#FBF3DC] px-4 py-3.5 text-sm leading-relaxed text-[#5C4A12]">
+                        <b className="block mb-0.5">이 정류소에는 지금 빌릴 자전거가 없어요</b>
+                        다른 출발지로 다시 찾아 보세요.
+                    </p>
+                )}
 
-                <div className="flex flex-col">
+                {/* 구간: 도보는 점선, 자전거는 초록 실선 */}
+                <ol className="mt-5">
                     {route.segments.map((segment, idx) => {
                         const isWalk = segment.type === 'walk';
                         const isLast = idx === route.segments.length - 1;
-                        const icon = isWalk ? 'directions_walk' : 'directions_bike';
-                        const label = isWalk ? '도보 이동' : '자전거 주행';
-                        const startPtName = segment.startPoint.name;
-                        const endPtName = segment.endPoint.name;
-
                         return (
-                            <div key={idx} className={`flex gap-4 ${isLast ? '' : 'pb-6'} relative`}>
-                                {/* 타임라인 아이콘 */}
+                            <li key={idx} className="relative flex gap-4 animate-slide-up" style={{ animationDelay: `${idx * 60 + 120}ms`, animationFillMode: 'backwards' }}>
                                 <div className="flex flex-col items-center flex-shrink-0">
-                                    <div className={`w-9 h-9 rounded-full flex items-center justify-center z-10 border ${
-                                        isWalk ? 'bg-surface-container border-outline-variant' : 'bg-primary border-primary'
-                                    }`}>
-                                        <span className={`material-symbols-outlined text-sm ${isWalk ? 'text-on-surface-variant' : 'text-white'}`}>
-                                            {icon}
-                                        </span>
-                                    </div>
+                                    <div className={`mt-1 w-[14px] h-[14px] rounded-full border-[3px] z-10 ${isWalk ? 'bg-surface border-gray-300' : 'bg-primary border-primary'}`} />
                                     {!isLast && (
-                                        <div className={`absolute top-9 w-0.5 h-[calc(100%-12px)] ${isWalk ? 'bg-surface-container' : 'bg-primary/30'}`} />
+                                        <div className={`flex-1 my-1 w-0 border-l-2 ${isWalk ? 'border-dashed border-gray-300' : 'border-solid border-primary'}`} />
                                     )}
                                 </div>
-
-                                {/* 내용 */}
-                                <div className="flex-1 pt-1 pb-1">
-                                    <p className="font-bold text-on-surface text-sm">
-                                        {startPtName}에서 {endPtName}까지 {label}
+                                <div className={`flex-1 min-w-0 ${isLast ? '' : 'pb-[18px]'}`}>
+                                    <h3 className="font-bold text-on-surface text-base leading-normal break-words">
+                                        {segment.startPoint.name}에서 {segment.endPoint.name}까지 {isWalk ? '걸어가요' : '자전거로 달려요'}
+                                    </h3>
+                                    <p className="text-sm text-on-surface-variant leading-normal">
+                                        {formatDuration(segment.duration)} · {segment.distance.toFixed(2)}km
                                     </p>
-                                    <p className="text-on-surface-variant text-xs font-medium mt-0.5">
-                                        {segment.duration}분 · {segment.distance.toFixed(2)}km
-                                    </p>
-
-                                    {/* 자전거 구간 - 정류소 정보 */}
-                                    {!isWalk && (
-                                        <div className="mt-2 bg-surface-container-low rounded-lg p-3 flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center border border-outline-variant">
-                                                <span className="material-symbols-outlined text-primary text-sm">directions_bike</span>
-                                            </div>
-                                            <div>
-                                                <p className="text-[11px] font-semibold text-on-surface-variant">대여 가능 자전거</p>
-                                                <p className="text-sm font-extrabold text-primary">{route.startStation.parking_count}대</p>
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
-                            </div>
+                            </li>
                         );
                     })}
-                </div>
-            </div>
+                </ol>
 
-            {/* 출발/도착 정류소 요약 */}
-            <div className="grid grid-cols-2 gap-3">
-                <div className="bg-primary-container rounded-lg p-4 border border-primary/10">
-                    <p className="text-[11px] font-semibold text-primary mb-1">출발 정류소</p>
-                    <p className="font-headline font-bold text-on-surface text-sm leading-tight">{route.startStation.name}</p>
-                    <p className="text-primary font-bold text-sm mt-1">{route.startStation.parking_count}대 대여 가능</p>
-                </div>
-                <div className="bg-surface-container-low rounded-lg p-4">
-                    <p className="text-[11px] font-semibold text-on-surface-variant mb-1">도착 정류소</p>
-                    <p className="font-headline font-bold text-on-surface text-sm leading-tight">{route.endStation.name}</p>
-                    <p className="text-on-surface-variant font-medium text-xs mt-1">반납 {route.endStation.parking_count}자리</p>
-                </div>
-            </div>
-
-            {/* 외부 지도 길찾기 — 색블록/이모지 없이 모노라인 */}
-            <div className="bg-white rounded-lg p-5 border border-outline-variant">
-                <p className="text-xs font-semibold text-on-surface-variant mb-4">
-                    외부 지도에서 길찾기
+                <p className="mt-1 text-sm text-on-surface-variant">
+                    도착 정류소 반납 가능 {route.endStation.parking_count}자리
                 </p>
-                <div className="grid grid-cols-2 gap-3">
-                    <a href={kakaoWebUrl} target="_blank" rel="noopener noreferrer" onClick={handleKakaoStart}
-                        className="flex items-center justify-center gap-2 py-3.5 rounded-lg border border-outline-variant hover:bg-surface-container-low transition-colors active:scale-95">
-                        <span className="material-symbols-outlined text-base text-primary">near_me</span>
-                        <span className="text-[13px] font-semibold text-on-surface">카카오맵</span>
-                    </a>
+
+                <div className="mt-5 grid grid-cols-2 gap-2">
                     <a href={naverUrl} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center justify-center gap-2 py-3.5 rounded-lg border border-outline-variant hover:bg-surface-container-low transition-colors active:scale-95">
-                        <span className="material-symbols-outlined text-base text-primary">near_me</span>
-                        <span className="text-[13px] font-semibold text-on-surface">네이버지도</span>
+                        className="press flex items-center justify-center min-h-[48px] rounded-[14px] bg-gray-100 text-on-surface text-sm font-bold">
+                        네이버지도
                     </a>
+                    <button onClick={handleSave} disabled={saved}
+                        className="press flex items-center justify-center min-h-[48px] rounded-[14px] bg-gray-100 text-on-surface text-sm font-bold disabled:text-primary">
+                        {saved ? '저장됨' : '경로 저장'}
+                    </button>
                 </div>
+                <p className="mt-4 text-xs text-on-surface-variant">대여 가능 대수는 매시 정각에 갱신되며 최대 1시간 전 값입니다.</p>
             </div>
 
-            {/* 다시 검색 */}
-            {onClose && (
-                <button onClick={onClose}
-                    className="w-full py-3 rounded-lg border border-outline-variant text-on-surface-variant text-sm font-semibold hover:bg-surface-container-low transition-colors flex items-center justify-center gap-2">
-                    <span className="material-symbols-outlined text-sm">arrow_back</span>
-                    다른 경로 검색
-                </button>
-            )}
+            <div className="flex-none px-4 pt-2.5 pb-[calc(var(--nav-h)+28px)] min-[900px]:pb-4 bg-surface shadow-[0_-1px_0_#E4E6E3]">
+                <a href={kakaoWebUrl} target="_blank" rel="noopener noreferrer" onClick={handleKakaoStart}
+                    aria-disabled={noBikes}
+                    className={`press flex items-center justify-center min-h-[52px] rounded-[16px] font-headline font-bold ${noBikes ? 'bg-gray-100 text-on-surface-variant' : 'bg-primary text-white'}`}>
+                    카카오맵으로 길찾기 시작
+                </a>
+            </div>
         </div>
     );
 };
