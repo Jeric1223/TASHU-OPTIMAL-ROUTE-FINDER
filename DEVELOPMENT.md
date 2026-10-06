@@ -23,16 +23,16 @@ npm install
 `.env` 파일 생성:
 
 ```env
-VITE_KAKAO_API_KEY=YOUR_KAKAO_API_KEY
-VITE_TASHU_PROXY_URL=https://your-proxy-server.com
-GEMINI_API_KEY=YOUR_GEMINI_API_KEY
+VITE_KAKAO_JS_KEY=YOUR_KAKAO_JS_KEY
+VITE_VWORLD_KEY=YOUR_VWORLD_KEY
 ```
 
 | 변수 | 필수 | 설명 |
 |------|------|------|
-| `VITE_KAKAO_API_KEY` | 필수 | 카카오 개발자 센터의 REST API 키 (장소 검색) |
-| `VITE_TASHU_PROXY_URL` | 필수 | 타슈 정류소 데이터를 가져오는 프록시 서버 URL |
-| `GEMINI_API_KEY` | 선택 | Google Gemini AI API 키 |
+| `VITE_KAKAO_JS_KEY` | 필수 | 카카오 JavaScript 키 (장소 검색 SDK) |
+| `VITE_VWORLD_KEY` | 선택 | VWorld 배경지도 키 (없으면 OpenStreetMap 타일로 대체) |
+
+정류소 데이터는 GitHub Actions(`.github/workflows/test-tashu-api.yml`)가 매시 타슈 API에서 받아 `public/data/stations.json`으로 빌드에 포함한다.
 
 ### 개발 서버 실행
 
@@ -40,7 +40,8 @@ GEMINI_API_KEY=YOUR_GEMINI_API_KEY
 npm run dev        # 개발 서버 (https://localhost:5173)
 npm run build      # 프로덕션 빌드
 npm run preview    # 빌드 결과 로컬 미리보기
-npm run deploy     # GitHub Pages 배포
+npm run typecheck  # 타입 체크
+npm test           # 서비스 테스트
 ```
 
 > 개발 서버는 `basicSsl` 플러그인으로 HTTPS 실행 (지오로케이션 API 요구사항)
@@ -53,13 +54,13 @@ npm run deploy     # GitHub Pages 배포
 - **TypeScript** - 타입 안전성
 - **Vite** - 고속 번들러
 - **Tailwind CSS** - 유틸리티 CSS
-- **Leaflet** - 지도 라이브러리
+- **OpenLayers** - 지도 라이브러리
 - **Workbox** - PWA 서비스 워커
 
 ### 외부 API
-- 카카오 Maps/Local API
+- 카카오 Maps JavaScript SDK (장소 검색)
 - 타슈 공개 API
-- 네이버 지도
+- VWorld 배경지도
 
 ---
 
@@ -74,8 +75,10 @@ src/
 │   ├── tashuService.ts      # 정류소 데이터, 거리 계산
 │   ├── locationService.ts   # 브라우저 지오로케이션 래퍼
 │   ├── kakoApiService.ts    # 카카오 장소 검색
-│   ├── naverApiService.ts   # 네이버 지도 (준비됨)
-│   └── geminiService.ts     # Gemini AI (준비됨)
+│   ├── kakaoSdkLoader.ts    # 카카오 SDK 로더
+│   ├── routeService.ts      # 경로·소요 시간 계산
+│   ├── roadRouteService.ts  # 도로 경로 조회
+│   └── favoriteService.ts   # 즐겨찾기 저장
 ├── types/
 │   └── index.ts    # 전역 TypeScript 타입 정의
 └── App.tsx         # 상태 관리 & 메인 진입점
@@ -93,12 +96,9 @@ src/
 
 > **주의**: 타슈 API는 `x_pos` = 위도, `y_pos` = 경도로 혼용됨
 
-### API 프록시 구조
+### 배포
 
-- **개발**: `vite.config.ts` 프록시 설정
-  - `/api/tashu/*` → `https://bikeapp.tashu.or.kr:50041/v1/openapi/*`
-  - `/api/kakao/*` → `https://dapi.kakao.com/*`
-- **프로덕션**: `netlify/functions/`의 서버리스 함수로 API 키 보호
+GitHub Actions가 정류소 데이터를 갱신·빌드한 뒤 GitHub Pages(`/TASHU-OPTIMAL-ROUTE-FINDER/`)로 배포한다. 별도 프록시 서버는 없다.
 
 ---
 

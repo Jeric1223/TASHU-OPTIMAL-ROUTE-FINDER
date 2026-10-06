@@ -23,5 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 .env
-# Local Netlify folder
-.netlify
+
+# PWA dev build output
+dev-dist

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 프로젝트 개요
 
-**타슈 최적 경로 찾기**는 대전시의 공공자전거 '타슈'의 가장 가까운 정류소를 찾고 최적 경로를 안내하는 PWA 웹 애플리케이션입니다. React, TypeScript, Vite로 구축되었으며, Leaflet 지도와 카카오맵/타슈 API를 통합합니다. Netlify Functions를 서버리스 백엔드로, Workbox를 통한 오프라인 캐싱을 지원합니다.
+**타슈 최적 경로 찾기**는 대전시의 공공자전거 '타슈'의 가장 가까운 정류소를 찾고 최적 경로를 안내하는 PWA 웹 애플리케이션입니다. React, TypeScript, Vite로 구축되었으며, OpenLayers 지도(VWorld 타일)와 카카오 장소 검색, 타슈 API를 통합합니다. 별도 백엔드 없이 GitHub Actions가 정류소 데이터를 정적 JSON으로 만들어 GitHub Pages에 배포하고, Workbox로 오프라인 캐싱을 지원합니다.
 
 ## 개발 설정
 
@@ -13,14 +13,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 프로젝트 루트 디렉토리에 `.env` 파일을 생성하고 다음 변수를 추가하세요:
 
 ```env
-VITE_KAKAO_API_KEY=<카카오_REST_API_키>
-VITE_TASHU_PROXY_URL=<타슈_프록시_URL>
-GEMINI_API_KEY=<Gemini_API_키>  # 선택사항, AI 기능용
+VITE_KAKAO_JS_KEY=<카카오_JavaScript_키>
+VITE_VWORLD_KEY=<VWorld_키>  # 선택사항
 ```
 
-- **VITE_KAKAO_API_KEY**: 카카오 개발자 센터의 REST API 키 (장소 검색에 사용)
-- **VITE_TASHU_PROXY_URL**: 타슈 프록시 서버 URL (정류소 데이터를 가져오는 데 필수). 이것이 없으면 앱이 정류소 데이터를 불러올 수 없습니다.
-- **GEMINI_API_KEY**: Google Gemini AI API 키 (선택사항, `process.env.GEMINI_API_KEY`로 Vite define을 통해 주입)
+- **VITE_KAKAO_JS_KEY**: 카카오 JavaScript 키 (`kakaoSdkLoader.ts`에서 SDK 로드, 장소 검색에 사용)
+- **VITE_VWORLD_KEY**: VWorld 배경지도 키. 없으면 OpenStreetMap 타일로 대체 (`TashuMap.tsx`)
+- 타슈 API 키(`TASHU_API_KEY`)는 GitHub Actions 시크릿에만 있고, 클라이언트는 사용하지 않습니다.
 
 ### 자주 사용하는 명령어
 
@@ -29,7 +28,8 @@ npm install              # 의존성 설치
 npm run dev             # 개발 서버 시작 (http://localhost:5173에서 실행)
 npm run build           # 프로덕션용 빌드
 npm run preview         # 로컬에서 프로덕션 빌드 미리보기
-npm run deploy          # GitHub Pages에 배포 (gh-pages 사용)
+npm run typecheck       # tsc --noEmit
+npm test                # tests/services.test.ts 실행 (esbuild 번들 후 node)
 ```
 
 개발 서버는 `basicSsl` 플러그인으로 HTTPS로 실행됩니다 (지오로케이션 API가 HTTPS를 요구). 경로 별칭 `@`는 `src/`를 가리킵니다.
@@ -41,16 +41,15 @@ npm run deploy          # GitHub Pages에 배포 (gh-pages 사용)
 애플리케이션은 다음과 같은 클라이언트 중심 아키텍처를 따릅니다:
 
 1. **React 컴포넌트** - 기능 컴포넌트로 나뉜 주요 UI 계층
-2. **서비스 계층** - API 호출 및 비즈니스 로직 캡슐화 (locationService, tashuService, kakoApiService, naverApiService 등)
+2. **서비스 계층** - API 호출 및 비즈니스 로직 캡슐화 (locationService, tashuService, kakoApiService, routeService 등)
 3. **타입** - 앱 전역에서 타입 안전성을 위한 중앙화된 TypeScript 타입
-4. **Vite 설정** - 개발용 API 프록시 및 Tailwind CSS 지원으로 구성
+4. **Vite 설정** - PWA(Workbox), HTTPS 개발 서버, `@` 경로 별칭
 
 ### 주요 데이터 흐름
 
 1. **앱 로드 시** (`App.tsx`):
-   - `tashuService.fetchTashuStations()`을 통해 모든 타슈 정류소 데이터 가져오기
+   - `tashuService.fetchTashuStations()`이 `public/data/stations.json`(빌드에 포함된 정적 파일)을 가져옴
    - 지오로케이션을 사용하여 주변 정류소 검색 자동 실행
-   - 환경 변수에서 API 키 로드
 
 2. **주변 검색**:
    - `navigator.geolocation`을 사용하여 사용자의 현재 위치 획득 (locationService 사용)
@@ -65,11 +64,12 @@ npm run deploy          # GitHub Pages에 배포 (gh-pages 사용)
 
 ### 주요 서비스
 
-- **tashuService.ts** - 타슈 정류소 데이터 가져오기, 거리 계산, 하버사인 공식을 사용한 가장 가까운 정류소 찾기
-- **locationService.ts** - 브라우저 지오로케이션 API 래퍼로 사용자의 현재 좌표 획득
-- **kakoApiService.ts** - 장소 검색용 카카오 키워드 검색 API 통합 (현재 사용하는 유일한 서비스)
-- **naverApiService.ts** & **naverService.ts** - 네이버맵 통합 (향후 사용을 위해 준비됨)
-- **geminiService.ts** - Google Gemini AI 통합 (향후 기능을 위해 준비됨)
+- **tashuService.ts** - 정류소 데이터(`stations.json`) 로드, 하버사인 거리 계산
+- **routeService.ts** - 가장 가까운 정류소, 도보/자전거 소요 시간 계산
+- **roadRouteService.ts** / `hooks/useRoadRoute.ts` - 도로 경로 조회
+- **locationService.ts** - 브라우저 지오로케이션 API 래퍼
+- **kakoApiService.ts** + **kakaoSdkLoader.ts** - 카카오 JavaScript SDK 기반 장소 검색
+- **favoriteService.ts** - 즐겨찾기 저장
 
 ### 타입 시스템
 
@@ -77,23 +77,15 @@ npm run deploy          # GitHub Pages에 배포 (gh-pages 사용)
 
 **주의**: 타슈 API는 혼동의 여지가 있는 네이밍을 사용하는데, `x_pos` = 위도, `y_pos` = 경도입니다.
 
-### 서버리스 백엔드
+### 데이터 갱신 & 배포
 
-`netlify/functions/`에 Netlify Functions가 있습니다:
-- **kakao-search.ts** - 카카오 API 프록시 (API 키 보호)
-- **tashu-stations.ts** - 타슈 정류소 데이터 프록시
+서버리스 백엔드는 없습니다. `.github/workflows/test-tashu-api.yml`이 매시 정각에 타슈 API를 호출해 `public/data/stations.json`을 생성하고, 빌드 후 GitHub Pages로 배포합니다.
 
 ## 중요한 구현 세부 사항
 
-### 개발 환경에서의 API 프록시
+### 런타임 캐싱
 
-`vite.config.ts`는 개발용 프록시 설정을 포함합니다:
-
-- `/api/tashu/*` → `https://bikeapp.tashu.or.kr:50041/v1/openapi/*`
-- `/api/kakao/*` → `https://dapi.kakao.com/*`
-- `/naver/*` → 네이버 지오코딩 API
-
-개발 전용 프록시입니다. 프로덕션에서는 Netlify Functions(`netlify/functions/`)를 통해 API 키를 보호합니다. PWA의 Workbox 런타임 캐싱이 `/.netlify/functions/*` 응답을 NetworkFirst로 캐시합니다.
+`vite.config.ts`의 Workbox 설정이 배경지도 타일(VWorld/OSM)은 CacheFirst, `/data/stations.json`은 NetworkFirst(5분)로 캐시합니다.
 
 ### 거리 계산
 
@@ -108,7 +100,6 @@ npm run deploy          # GitHub Pages에 배포 (gh-pages 사용)
 - 지도 상태 (중심, 확대 수준, 선택된 정류소)
 - 사용자 위치
 - UI 상태 (로딩, 오류, 활성 탭)
-- 환경에서의 API 키
 
 ### 스타일링
 
@@ -120,14 +111,13 @@ npm run deploy          # GitHub Pages에 배포 (gh-pages 사용)
 
 1. `services/` 디렉토리에 새로운 서비스 파일 생성 (예: `googleMapsService.ts`)
 2. `LocationSearchResult[]`를 반환하는 검색 함수 구현
-3. `App.tsx`의 `handleDestinationSearch` 함수에서 불러오고 호출
+3. `RouteSearch.tsx`에서 불러오고 호출
 4. 필요한 환경 변수를 `.env`에 추가
 
 ### 지도 표시 문제 해결
 
-지도 관련 로직은 `TashuMap.tsx`에 있습니다. 일반적인 문제:
-- Leaflet CSS가 `index.html`에 임포트되었는지 확인
-- 좌표가 [위도, 경도] 형식인지 확인 (타슈 API의 x_pos/y_pos 혼동 주의)
+지도 관련 로직은 `TashuMap.tsx`(OpenLayers)에 있습니다. 일반적인 문제:
+- OpenLayers는 [경도, 위도] 순서로 `fromLonLat`에 넘긴다 (타슈 API의 x_pos=위도/y_pos=경도 혼동 주의)
 - 지도 컨테이너가 CSS에서 명시적인 높이 설정을 가지고 있는지 확인
 
 ### API 실패 처리
@@ -155,14 +145,10 @@ npm run deploy          # GitHub Pages에 배포 (gh-pages 사용)
 
 ## 테스트
 
-현재 테스트 프레임워크가 구성되지 않았습니다. 테스트를 추가하는 경우:
-- Vitest 사용 고려 (Vite 네이티브 테스트 러너)
-- 모의 지오로케이션을 사용한 위치 서비스 테스트
-- tashuService 및 검색 서비스용 API 응답 모의
-- 알려진 좌표 쌍을 사용한 거리 계산 테스트
+테스트 프레임워크 없이 `tests/services.test.ts`를 esbuild로 번들해 node로 실행합니다 (`npm test`).
 
 ## 빌드 결과물
 
 - 프로덕션 빌드는 `dist/` 디렉토리로 출력됩니다
-- 기본 경로는 vite.config.ts에서 `/`로 설정됩니다 (Netlify 배포 기준)
+- 기본 경로는 vite.config.ts에서 `/TASHU-OPTIMAL-ROUTE-FINDER/`로 설정됩니다 (GitHub Pages 기준)
 - 빌드는 사용하지 않는 코드를 제거하고 번들 크기를 최적화합니다
