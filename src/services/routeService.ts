@@ -173,16 +173,3 @@ export const findNearestStation = (
 
     return nearest;
 };
-
-/**
- * Get route summary as human-readable string
- */
-export const getRouteSummary = (route: OptimalRoute): string => {
-    const distance = route.totalDistance.toFixed(2);
-    const duration = route.totalDuration;
-    const bikeSegment = route.segments.find((s) => s.type === 'bike');
-
-    const bikeDistance = bikeSegment ? bikeSegment.distance.toFixed(2) : '0';
-
-    return `약 ${duration}분 소요 (총 ${distance}km, 자전거 ${bikeDistance}km)`;
-};

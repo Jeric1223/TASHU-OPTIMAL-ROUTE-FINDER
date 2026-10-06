@@ -24,47 +24,11 @@ export interface LocationSearchResult {
     coords: Coordinates;
 }
 
-// Types for Kakao Keyword Search API Response
-export interface KakaoDocument {
-    place_name: string;
-    address_name: string;
-    road_address_name: string;
-    x: string; // longitude
-    y: string; // latitude
-}
-
-export interface KakaoKeywordSearchResponse {
-    documents: KakaoDocument[];
-}
-
 export interface KakaoSearchResult {
     name: string;
     address: string;
     roadAddress: string;
     coords: Coordinates;
-}
-
-export interface NaverSearchResult {
-    name: string;
-    address: string;
-    roadAddress: string;
-    coords: Coordinates;
-}
-
-// Types for Naver Geocoding API Response
-export interface GeocodingAddress {
-    roadAddress: string;
-    jibunAddress: string;
-    englishAddress: string;
-    x: string; // longitude
-    y: string; // latitude
-    distance: number;
-}
-
-export interface GeocodingResponse {
-    status: string;
-    addresses: GeocodingAddress[];
-    errorMessage?: string;
 }
 
 // Route guidance types
