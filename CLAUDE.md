@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 프로젝트 개요
 
-**타슈 최적 경로 찾기**는 대전시의 공공자전거 '타슈'의 가장 가까운 정류소를 찾고 최적 경로를 안내하는 PWA 웹 애플리케이션입니다. React, TypeScript, Vite로 구축되었으며, OpenLayers 지도(VWorld 타일)와 카카오 장소 검색, 타슈 API를 통합합니다. 별도 백엔드 없이 GitHub Actions가 정류소 데이터를 정적 JSON으로 만들어 GitHub Pages에 배포하고, Workbox로 오프라인 캐싱을 지원합니다.
+**공공자전거 최적 경로 찾기**는 대전 '타슈'와 서울 '따릉이'의 가장 가까운 정류소를 찾고 최적 경로를 안내하는 PWA 웹 애플리케이션입니다. React, TypeScript, Vite로 구축되었으며, OpenLayers 지도(VWorld 타일)와 카카오 장소 검색, 타슈·따릉이 API를 통합합니다. 별도 백엔드 없이 GitHub Actions가 정류소 데이터를 정적 JSON으로 만들어 GitHub Pages에 배포하고, Workbox로 오프라인 캐싱을 지원합니다.
 
 ## 개발 설정
 
@@ -79,7 +79,7 @@ npm test                # tests/services.test.ts 실행 (esbuild 번들 후 node
 
 ### 데이터 갱신 & 배포
 
-서버리스 백엔드는 없습니다. `.github/workflows/test-tashu-api.yml`이 매시 정각에 타슈 API를 호출해 `public/data/stations.json`을 생성하고, 빌드 후 GitHub Pages로 배포합니다.
+서버리스 백엔드는 없습니다. `.github/workflows/test-tashu-api.yml`이 매시 정각에 타슈 API(`stations.json`)와 서울 따릉이 API(`scripts/seoul-stations.mjs` → `seoul-stations.json`, 시크릿 `SEOUL_API_KEY`)를 호출해 정적 JSON을 생성하고, 빌드 후 GitHub Pages로 배포합니다. 도시는 `services/cityService.ts`의 `CITIES`로 정의하며, 도시별 브랜드 색은 `<html data-city>` + CSS 변수(`--brand` 등)로 전환합니다.
 
 ## 중요한 구현 세부 사항
 

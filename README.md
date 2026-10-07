@@ -1,113 +1,65 @@
-# 🚴 TASHU - 타슈 최적 경로 찾기
+# 공공자전거 최적 경로 찾기
 <img width="1536" height="1024" alt="997d6879-7496-4d2f-a523-b4327fab1d1c" src="https://github.com/user-attachments/assets/0f7730ce-5d2b-477b-811f-1a84cd6ff14c" />
 
-> 대전시 공공자전거 '타슈'의 가장 가까운 정류소를 찾고, 최적의 경로를 안내하는 PWA 웹 앱
+대전 '타슈'와 서울 '따릉이'의 가까운 정류소를 찾고, 자전거 경로를 안내하는 PWA 웹 앱입니다.
 
-[![정류소 지도 화면](./docs/hero.jpg)](./docs/hero.jpg)
+[![메인 화면](./docs/hero.jpg)](./docs/hero.jpg)
 
-> 지도 위 각 정류소의 실시간 잔여 대수를 보여주는 메인 화면
+온라인 데모: https://jeric1223.github.io/PUBLIC-BIKE-ROUTE-FINDER/
 
+[개발 후기 (velog)](https://velog.io/@hoohoo0889/%EB%8C%80%EC%A0%84-%ED%86%A0%EB%B0%95%EC%9D%B4-%EA%B0%9C%EB%B0%9C%EC%9E%90%EA%B0%80-%ED%83%80%EC%8A%88-%EC%93%B0%EB%8B%A4-%EB%B9%A1%EC%B3%90%EC%84%9C-%EB%A7%8C%EB%93%A0-%EC%95%B1-%EC%84%9C%EB%B2%84-%EB%B9%84%EC%9A%A9-0%EC%9B%90)
 
-https://velog.io/@hoohoo0889/%EB%8C%80%EC%A0%84-%ED%86%A0%EB%B0%95%EC%9D%B4-%EA%B0%9C%EB%B0%9C%EC%9E%90%EA%B0%80-%ED%83%80%EC%8A%88-%EC%93%B0%EB%8B%A4-%EB%B9%A1%EC%B3%90%EC%84%9C-%EB%A7%8C%EB%93%A0-%EC%95%B1-%EC%84%9C%EB%B2%84-%EB%B9%84%EC%9A%A9-0%EC%9B%90
+## 주요 기능
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Built with React](https://img.shields.io/badge/Built%20with-React%2018-61dafb)](https://react.dev)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178c6)](https://www.typescriptlang.org)
+### 내 주변 정류소
+- 현재 위치를 기준으로 가장 가까운 정류소를 자동으로 찾습니다.
+- 정류소별 대여 가능 대수, 거리, 도보 시간을 보여줍니다. 서울은 반납 가능한 거치대 수도 함께 표시합니다.
+- 하단 카드를 좌우로 넘기면 지도가 해당 정류소로 이동합니다.
+- 데이터 기준 시각("N분 전 기준")을 표시합니다.
 
-## ✨ 주요 기능
+### 대전 / 서울 전환
+- 상단 도시 칩에서 대전과 서울을 전환합니다. 도시별 브랜드 색(대전 주황, 서울 파랑)이 적용됩니다.
+- 내 위치가 선택한 도시 밖이어도 해당 도시의 정류소를 둘러볼 수 있습니다.
 
-### 📍 내 주변 정류소 찾기
-- **현재 위치 기반** 자동 감지로 가장 가까운 타슈 정류소 검색
-- 자전거 **대여 가능 수량** 실시간 표시
-- 거리 표시로 빠른 판단 가능
+### 경로 찾기
+- 출발지와 목적지를 검색하면 출발지 근처 대여 정류소와 목적지 근처 반납 정류소를 골라 도보와 자전거 구간으로 나눠 보여줍니다.
+- 카카오맵 또는 네이버지도로 길찾기를 이어서 시작할 수 있습니다.
 
-### 🗺️ 대전 지도 통합
-- **OpenLayers** 기반 고성능 맵 엔진
-- 모든 타슈 정류소 시각화
-- 마커 클릭으로 정류소 상세 정보 확인
+### 즐겨찾기
+- 자주 쓰는 정류소를 저장해 두고 빠르게 확인합니다.
 
-### 🛣️ 최적 경로 찾기
-- 출발지/목적지 입력으로 **최단 경로 계산**
-- 자전거 주행 구간과 도보 구간 구분 표시
-- **카카오맵/네이버지도** 연동으로 실제 네비게이션
+### PWA
+- 홈 화면에 설치할 수 있고, 오프라인에서도 기본 화면과 마지막 정류소 데이터를 볼 수 있습니다.
 
-### ❤️ 즐겨찾기 관리
-- 자주 가는 정류소 저장
-- 빠른 접근으로 편한 사용성
+## 설치
 
-### 📱 PWA (Progressive Web App)
-- **앱처럼 설치 가능** (iOS, Android, PC)
-- 오프라인 지원으로 네트워크 없이도 기본 기능 사용
-- 빠른 로딩과 부드러운 애니메이션
+- iOS: Safari에서 접속한 뒤 공유 버튼, "홈 화면에 추가"
+- Android: Chrome에서 접속한 뒤 메뉴, "앱 설치"
+- PC: Chrome 또는 Edge 주소창 오른쪽의 설치 버튼
 
----
+## 사용 방법
 
-## 🚀 빠른 시작
+1. 앱을 열고 위치 권한을 허용하면 가까운 정류소가 표시됩니다.
+2. 상단 도시 칩으로 대전과 서울을 바꿀 수 있습니다.
+3. 하단 "경로" 탭에서 출발지와 목적지를 입력해 경로를 계산합니다.
+4. 정류소 카드의 별 버튼으로 즐겨찾기에 저장합니다.
 
-### 온라인 데모
-```
-https://jeric1223.github.io/PUBLIC-BIKE-ROUTE-FINDER/
-```
+## 데이터
 
-### 앱으로 설치하기
+별도 서버 없이 GitHub Actions가 매시 정각에 타슈 API와 서울 열린데이터광장 따릉이 API에서 정류소 정보를 받아 정적 JSON으로 만들고 GitHub Pages에 배포합니다.
 
-**📱 모바일 (iOS)**
-1. Safari에서 위 링크 방문
-2. 공유 버튼 → "홈 화면에 추가"
+## 기술 스택
 
-**📱 모바일 (Android)**
-1. Chrome/Edge에서 위 링크 방문
-2. 우측 상단 메뉴 → "설치" 또는 자동 설치 배너 클릭
+React, TypeScript, Vite, Tailwind CSS, OpenLayers, Workbox
 
-**💻 PC (Windows/Mac)**
-1. Chrome/Edge에서 위 링크 방문
-2. 주소창 우측 "앱 설치" 아이콘 클릭
+## 개발
 
----
+개발 환경, 구조, 배포 방법은 [DEVELOPMENT.md](./DEVELOPMENT.md)를 참고하세요.
 
-## 📋 사용 방법
+## 라이선스
 
-### 1️⃣ 내 주변 정류소 찾기
-1. 앱 실행 시 위치 허용 요청
-2. 자동으로 가장 가까운 정류소 표시
-3. 정류소 카드에서 **카카오맵** 또는 **네이버지도** 클릭으로 길찾기
+MIT
 
-### 2️⃣ 경로 찾기
-1. 하단 네비게이션 **경로 찾기** 탭 클릭
-2. 출발지/목적지 입력
-3. **"경로 찾기"** 버튼으로 최적 경로 계산
-4. **"카카오맵으로 주행 시작"** 클릭으로 네비게이션
+## 문의
 
-### 3️⃣ 즐겨찾기 관리
-1. 하단 네비게이션 **즐겨찾기** 탭
-2. 정류소에서 하트 아이콘으로 저장
-3. 저장한 정류소 목록 관리
-
----
-
-## 📄 라이선스
-
-MIT License - 자유롭게 사용, 수정, 배포 가능
-
----
-
-## 📞 문의 & 피드백
-
-- **Issues**: [GitHub Issues](https://github.com/kimjaehyeon/PUBLIC-BIKE-ROUTE-FINDER/issues)
-- **Email**: soehd0889@gmail.com
-
----
-
-## 🔧 개발자 문서
-
-개발 환경 설정, 기술 스택, 아키텍처, 기여 방법 등은 [DEVELOPMENT.md](./DEVELOPMENT.md)를 참고하세요.
-
----
-
-<div align="center">
-
-**⭐ 이 프로젝트가 도움이 되었다면 별을 눌러주세요!**
-
-Made with ❤️ by [Kim Jaehyeon](https://github.com/kimjaehyeon)
-
-</div>
+[GitHub Issues](https://github.com/Jeric1223/PUBLIC-BIKE-ROUTE-FINDER/issues)
