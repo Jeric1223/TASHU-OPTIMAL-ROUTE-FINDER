@@ -1,7 +1,8 @@
-import React, { useState, useCallback, useEffect, useMemo } from "react";
-import type { Station, StationWithDistance, Coordinates, LocationSearchResult, OptimalRoute, FavoriteStation } from "./types/index";
+import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import type { Station, StationWithDistance, Coordinates, LocationSearchResult, OptimalRoute, FavoriteStation, CityId } from "./types/index";
 import { getCurrentLocation } from "./services/locationService";
-import { findNearestAvailableStation, fetchTashuStations, haversineDistance } from "./services/tashuService";
+import { findNearestAvailableStation, fetchStations, haversineDistance, minutesSince, SERVICE_RADIUS_KM } from "./services/tashuService";
+import { CITIES, getSavedCity, saveCity, nearestCity, isNearCity, DEFAULT_CITY } from "./services/cityService";
 import { getFavorites } from "./services/favoriteService";
 import UiIcon, { type UiIconName } from "./components/UiIcon";
 import FavoritesList from "./components/FavoritesList";
@@ -9,6 +10,8 @@ import RouteSearch from "./components/RouteSearch";
 import RouteResult from "./components/RouteResult";
 import TashuMap from "./components/TashuMap";
 import StationDeck from "./components/StationDeck";
+import CityChip from "./components/CityChip";
+import CitySheet from "./components/CitySheet";
 import SegToggle from "./components/SegToggle";
 import { useCountUp } from "./hooks/useCountUp";
 import { useRoadRoute } from "./hooks/useRoadRoute";
@@ -28,7 +31,24 @@ const App: React.FC = () => {
     const [selIdx, setSelIdx] = useState(0);
     const [nearbyFilter, setNearbyFilter] = useState<'all' | 'avail'>('all');
 
-    const [stations, setStations] = useState<Station[]>([]);
+    const [city, setCity] = useState<CityId>(() => getSavedCity() ?? DEFAULT_CITY);
+    const [isCitySheetOpen, setIsCitySheetOpen] = useState(false);
+    const chipRef = useRef<HTMLButtonElement>(null);
+    // 사용자가 직접 도시를 고르면 이후 위치 결과로 도시를 바꾸지 않는다
+    const cityPicked = useRef(false);
+    // 위치 기반 도시 자동 선택은 첫 위치 결과에만 적용한다
+    const autoSelected = useRef(false);
+    const cityRef = useRef(city);
+    cityRef.current = city;
+    const loadSeq = useRef(0);
+    const loadedCity = useRef<CityId | null>(null);
+
+    const [stationsRaw, setStationsRaw] = useState<{ city: CityId; stations: Station[] }>({ city: DEFAULT_CITY, stations: [] });
+    // 도시를 바꾼 직후 새 데이터가 오기 전까지는 이전 도시의 정류소를 쓰지 않는다
+    const stations = useMemo(() => (stationsRaw.city === city ? stationsRaw.stations : []), [stationsRaw, city]);
+    const [everLoaded, setEverLoaded] = useState(false);
+    const [updatedAt, setUpdatedAt] = useState<string | null>(null);
+    const [now, setNow] = useState(() => Date.now());
     const [isDataLoading, setIsDataLoading] = useState<boolean>(true);
     const [dataError, setDataError] = useState<string | null>(null);
 
@@ -50,20 +70,40 @@ const App: React.FC = () => {
     // 값이 바뀔 때마다 경로 화면의 도착 입력에 포커스를 준다
     const [routeFocus, setRouteFocus] = useState(0);
     // 즐겨찾기 탭 지도에 그릴 정류소 id
-    const [favoriteIds, setFavoriteIds] = useState<string[]>(() => getFavorites().map(f => f.id));
+    const [favoriteIds, setFavoriteIds] = useState<string[]>(() => getFavorites(city).map(f => f.id));
 
     const loadStations = useCallback(async () => {
+        const target = city;
+        const seq = ++loadSeq.current;
         setIsDataLoading(true);
         setDataError(null);
         try {
-            const fetchedStations = await fetchTashuStations();
-            setStations(fetchedStations);
+            const data = await fetchStations(CITIES[target].dataUrl);
+            if (seq !== loadSeq.current) return; // 그 사이 도시가 바뀌었다
+            setStationsRaw({ city: target, stations: data.stations });
+            setUpdatedAt(data.updatedAt);
+            setEverLoaded(true);
+            loadedCity.current = target;
         } catch (err) {
-            setDataError(err instanceof Error ? err.message : "정류장 데이터를 불러오는 데 실패했습니다.");
+            if (seq !== loadSeq.current) return;
+            const prev = loadedCity.current;
+            if (prev && prev !== target) {
+                // 도시 전환에 실패하면 불러왔던 도시로 되돌린다
+                setCity(prev);
+                setSearchError(`${CITIES[target].serviceName} 정류소 정보를 불러오지 못했어요`);
+            } else {
+                setDataError(err instanceof Error ? err.message : "정류장 데이터를 불러오는 데 실패했습니다.");
+            }
         } finally {
-            setIsDataLoading(false);
+            if (seq === loadSeq.current) setIsDataLoading(false);
         }
-    }, []);
+    }, [city]);
+
+    // 위치가 속한 도시면 위치를, 아니면 도시 중심을 지도 중심으로 쓴다
+    const mapTargetFor = useCallback((loc: Coordinates | null, id: CityId): { center: [number, number]; zoom: number } =>
+        loc && isNearCity(loc, id)
+            ? { center: [loc.latitude, loc.longitude], zoom: 16 }
+            : { center: CITIES[id].center, zoom: 13 }, []);
 
     const handleNearbySearch = useCallback(async () => {
         setIsSearching(true);
@@ -74,39 +114,86 @@ const App: React.FC = () => {
         try {
             const userCoords = await getCurrentLocation();
             setUserLocation(userCoords);
-            const nearestAvailableStation = findNearestAvailableStation(userCoords, stations);
-            if (nearestAvailableStation) {
-                setNearbyResult(nearestAvailableStation);
-                setMapCenter([userCoords.latitude, userCoords.longitude]);
-                setMapZoom(16);
-            } else {
-                setMapCenter([userCoords.latitude, userCoords.longitude]);
-                setMapZoom(16);
+            // 첫 위치 결과로 도시를 고른다 (직접 고른 도시가 있으면 건드리지 않는다)
+            if (!autoSelected.current && !cityPicked.current) {
+                autoSelected.current = true;
+                const auto = nearestCity(userCoords);
+                if (auto !== cityRef.current) {
+                    saveCity(auto);
+                    cityRef.current = auto;
+                    setCity(auto);
+                    return; // 도시 전환 effect가 지도 중심·선택을 정리한다
+                }
             }
+            autoSelected.current = true;
+            const target = mapTargetFor(userCoords, cityRef.current);
+            setMapCenter(target.center);
+            setMapZoom(target.zoom);
+            const nearestAvailableStation = findNearestAvailableStation(userCoords, stations);
+            if (nearestAvailableStation) setNearbyResult(nearestAvailableStation);
         } catch (err) {
             setSearchError(err instanceof Error ? err.message : "위치 정보 접근 권한이 거부되었습니다.");
         } finally {
             setIsSearching(false);
         }
-    }, [stations]);
+    }, [stations, mapTargetFor]);
 
+    // 도시가 바뀌면(첫 진입 포함) 그 도시의 데이터를 불러오고 선택 상태를 비운다
+    const userLocationRef = useRef<Coordinates | null>(null);
+    userLocationRef.current = userLocation;
     useEffect(() => {
         loadStations();
+        setSelIdx(0);
+        setSelectedStationOnMap(null);
+        setNearbyResult(null);
+        setCurrentRoute(null);
+        setRouteStartStation(null);
+        setFavoriteIds(getFavorites(city).map(f => f.id));
+        const target = mapTargetFor(userLocationRef.current, city);
+        setMapCenter(target.center);
+        setMapZoom(target.zoom);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [city]);
+
+    useEffect(() => {
         handleNearbySearch();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    const handleSelectCity = useCallback((id: CityId) => {
+        setIsCitySheetOpen(false);
+        cityPicked.current = true;
+        if (id === cityRef.current) return;
+        saveCity(id);
+        setCity(id);
+    }, []);
+    const closeCitySheet = useCallback(() => setIsCitySheetOpen(false), []);
+    const openCitySheet = useCallback(() => setIsCitySheetOpen(true), []);
+
+    // "N분 전 기준"이 멈춰 있지 않도록 1분마다 현재 시각을 갱신한다
+    useEffect(() => {
+        const t = setInterval(() => setNow(Date.now()), 60_000);
+        return () => clearInterval(t);
+    }, []);
+    const ageMin = updatedAt ? minutesSince(updatedAt, now) : null;
+
     // 거리순 주변 정류소 목록 (화면 1: 주변 정류소) — tashuService.haversineDistance만 소비, 서비스 로직은 불변.
-    const nearbyStations = useMemo<StationWithDistance[]>(() => {
+    const sortedByDistance = useMemo<StationWithDistance[]>(() => {
         if (!userLocation) return [];
         return stations
             .map((s) => ({
                 ...s,
                 distance: haversineDistance(userLocation, { latitude: s.x_pos, longitude: s.y_pos }),
             }))
-            .sort((a, b) => a.distance - b.distance)
-            .slice(0, 20);
+            .sort((a, b) => a.distance - b.distance);
     }, [stations, userLocation]);
+
+    // 가장 가까운 정류소가 서비스 반경 밖이면 주변 목록을 비우고 빈 상태를 보여준다
+    const isOutOfService = sortedByDistance.length > 0 && (sortedByDistance[0].distance ?? 0) > SERVICE_RADIUS_KM;
+    const nearbyStations = useMemo(
+        () => (isOutOfService ? [] : sortedByDistance.slice(0, 20)),
+        [sortedByDistance, isOutOfService]
+    );
 
     const visibleStations = useMemo(
         () => nearbyFilter === 'avail' ? nearbyStations.filter(st => st.parking_count > 0) : nearbyStations,
@@ -215,8 +302,8 @@ const App: React.FC = () => {
 
     // 즐겨찾기 탭에 들어올 때마다 저장 목록을 다시 읽는다
     useEffect(() => {
-        if (activeTab === Tab.Favorites) setFavoriteIds(getFavorites().map(f => f.id));
-    }, [activeTab]);
+        if (activeTab === Tab.Favorites) setFavoriteIds(getFavorites(city).map(f => f.id));
+    }, [activeTab, city]);
 
     // 선택한 정류소까지 내 위치에서 걷는 선과 소요 시간 (주변 탭)
     const walkLine = useMemo(() => {
@@ -229,11 +316,11 @@ const App: React.FC = () => {
     }, [activeTab, userLocation, selected]);
 
     // 데이터 로딩 화면
-    if (isDataLoading && stations.length === 0) {
+    if (isDataLoading && !everLoaded) {
         return (
             <div className="h-screen flex flex-col items-center justify-center bg-surface">
-                <div className="w-10 h-10 border-3 border-primary border-t-transparent rounded-full animate-spin mb-4" style={{ borderWidth: '3px' }} />
-                <p className="font-body font-medium text-on-surface-variant">타슈 정류장 정보를 불러오는 중...</p>
+                <div className="w-10 h-10 border-3 border-on-surface border-t-transparent rounded-full animate-spin mb-4" style={{ borderWidth: '3px' }} />
+                <p className="font-body font-medium text-on-surface-variant">정류소 정보를 불러오는 중...</p>
             </div>
         );
     }
@@ -248,7 +335,7 @@ const App: React.FC = () => {
                     <button
                         onClick={loadStations}
                         disabled={isDataLoading}
-                        className="w-full bg-primary text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 press"
+                        className="w-full bg-primary text-on-primary font-bold py-3 rounded-xl flex items-center justify-center gap-2 press"
                     >
                         <UiIcon name="refresh" className="w-4 h-4" />
                         재시도
@@ -272,6 +359,7 @@ const App: React.FC = () => {
                     walkLine={walkLine}
                     onStationClick={handleStationClick}
                     clickedStationId={selectedStationOnMap?.id}
+                    city={city}
                     route={currentRoute}
                     hideStations={activeTab === Tab.Route && !!currentRoute}
                     coveredInsets={{
@@ -286,21 +374,30 @@ const App: React.FC = () => {
             {/* ── 상단: 검색 알약 + 필터 토글 + 한 문장 (지도 위에 떠 있는 유리) ── */}
             {activeTab === Tab.Nearby && (
                 <header className="fixed top-0 inset-x-3 z-[var(--z-overlay)] pt-safe grid gap-2 justify-items-start min-[900px]:right-auto min-[900px]:w-[380px] min-[900px]:left-4 min-[900px]:top-4 min-[900px]:pt-0">
-                    <button
-                        onClick={openRouteSearch}
-                        className="press nav-pill w-full min-h-[52px] flex items-center gap-2.5 px-[18px] rounded-[26px] text-base text-on-surface-variant text-left"
-                    >
-                        <UiIcon name="search" className="w-[22px] h-[22px]" />
-                        어디로 갈까요?
-                        {isDataLoading && <span className="ml-auto w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />}
-                    </button>
+                    <div className="nav-pill w-full min-h-[52px] flex items-stretch rounded-[26px]">
+                        <CityChip ref={chipRef} city={CITIES[city]} expanded={isCitySheetOpen} onClick={openCitySheet} />
+                        <i className="self-center w-px h-6 bg-gray-900/15" aria-hidden="true" />
+                        <button
+                            onClick={openRouteSearch}
+                            className="press flex-1 min-h-[52px] flex items-center gap-2 pl-3.5 pr-[18px] rounded-r-[26px] text-base text-on-surface-variant text-left"
+                        >
+                            <UiIcon name="search" className="w-[22px] h-[22px]" />
+                            어디로 갈까요?
+                            {isDataLoading && <span className="ml-auto w-5 h-5 border-2 border-on-surface border-t-transparent rounded-full animate-spin" />}
+                        </button>
+                    </div>
                     <SegToggle value={nearbyFilter} onChange={setNearbyFilter} className="w-[208px] nav-pill !bg-gray-100/90" />
                     <p key={selected?.id ?? 'none'} className="nav-pill animate-slide-up px-4 py-2.5 rounded-[20px] text-[15px] font-semibold leading-snug text-on-surface">
                         {selected
                             ? selected.parking_count === 0
                                 ? <><b className="text-[17px] font-bold">{formatDistance(selected.distance ?? 0)}</b> 앞 정류소는 자전거가 없어요</>
                                 : <><b className="text-[17px] font-bold">{formatDistance(selected.distance ?? 0)}</b> 앞에 자전거가 <b className="text-[17px] font-bold tabular-nums">{heroCount}</b>대 있어요</>
-                            : isSearching ? '주변 정류소를 찾는 중이에요' : '위치를 켜면 가까운 자전거를 알려드려요'}
+                            : isSearching ? '주변 정류소를 찾는 중이에요' : isOutOfService ? '근처에 공공자전거가 없어요' : '위치를 켜면 가까운 자전거를 알려드려요'}
+                        {ageMin !== null && (
+                            <span className={`block mt-0.5 text-xs font-medium ${ageMin > 30 ? 'text-on-surface-variant' : 'text-on-surface'}`}>
+                                <span className="tabular-nums">{ageMin}</span>분 전 기준{ageMin > 30 && ' · 지금과 다를 수 있어요'}
+                            </span>
+                        )}
                     </p>
                 </header>
             )}
@@ -321,14 +418,14 @@ const App: React.FC = () => {
                     onClick={handleGoToNearestStation}
                     disabled={isFindingNearest}
                     aria-label="가장 가까운 대여 가능 정류소"
-                    className="w-12 h-12 liquid-glass text-primary rounded-full flex items-center justify-center press disabled:opacity-50"
+                    className="w-12 h-12 liquid-glass text-on-surface rounded-full flex items-center justify-center press disabled:opacity-50"
                 >
                     <UiIcon name="route" />
                 </button>
                 <button
                     onClick={handleGoToUserLocation}
                     disabled={isCentering}
-                    className="w-12 h-12 liquid-glass text-primary rounded-full flex items-center justify-center press"
+                    className="w-12 h-12 liquid-glass text-on-surface rounded-full flex items-center justify-center press"
                 >
                     <UiIcon name="locate" />
                 </button>
@@ -342,10 +439,13 @@ const App: React.FC = () => {
                     onSelect={selectIdx}
                     onMakeRoute={handleSetRouteStart}
                     onShowAll={() => setNearbyFilter('all')}
+                    city={city}
                     emptyMessage={
                         nearbyStations.length > 0
                             ? { title: '대여 가능한 정류소가 없어요', sub: '잠시 후 다시 확인하거나 전체 정류소를 보세요', canShowAll: true }
-                            : { title: isSearching ? '주변 정류소를 찾는 중...' : '주변 정류소가 없어요', sub: '위치 정보를 불러오면 가까운 정류소가 표시됩니다.', canShowAll: false }
+                            : isOutOfService
+                                ? { title: '근처에 공공자전거가 없어요', sub: `내 위치에서 ${SERVICE_RADIUS_KM}km 안에 정류소가 없어요`, canShowAll: false, action: { label: '도시 둘러보기', onClick: openCitySheet } }
+                                : { title: isSearching ? '주변 정류소를 찾는 중...' : '주변 정류소가 없어요', sub: '위치 정보를 불러오면 가까운 정류소가 표시됩니다.', canShowAll: false }
                     }
                 />
             )}
@@ -404,7 +504,7 @@ const App: React.FC = () => {
                         style={{ top: 'calc(46% - 24px)' }}
                     >
                         {roadRoute ? (
-                            <RouteResult route={roadRoute} />
+                            <RouteResult route={roadRoute} city={city} />
                         ) : (
                             <div className="flex-1 overflow-y-auto px-4 pt-[22px] no-scrollbar" style={{ paddingBottom: 'calc(var(--nav-h) + 40px)' }}>
                                 <h1 className="font-headline font-bold text-[26px] leading-[1.4] text-on-surface" style={{ textWrap: 'balance' }}>어디서 어디까지 가세요?</h1>
@@ -418,8 +518,13 @@ const App: React.FC = () => {
                         className="absolute inset-x-3 grid gap-2 min-[900px]:right-auto min-[900px]:left-4 min-[900px]:w-[380px] min-[900px]:!top-4"
                         style={{ top: 'calc(var(--safe-area-inset-top) + 12px)' }}
                     >
+                        <div className="justify-self-start">
+                            <CityChip ref={chipRef} variant="pill" city={CITIES[city]} expanded={isCitySheetOpen} onClick={openCitySheet} />
+                        </div>
                         <RouteSearch
+                            key={city}
                             stations={stations}
+                            city={city}
                             onRouteFound={setCurrentRoute}
                             onRouteClear={() => setCurrentRoute(null)}
                             onError={setSearchError}
@@ -437,8 +542,20 @@ const App: React.FC = () => {
                     onStationSelect={handleStationSelect}
                     onIdsChange={setFavoriteIds}
                     userLocation={userLocation}
+                    city={city}
+                    cityChip={<CityChip ref={chipRef} city={CITIES[city]} expanded={isCitySheetOpen} onClick={openCitySheet} />}
                 />
             )}
+
+            <CitySheet
+                open={isCitySheetOpen}
+                current={city}
+                nearest={userLocation ? nearestCity(userLocation) : null}
+                ageMin={ageMin}
+                onSelect={handleSelectCity}
+                onClose={closeCitySheet}
+                returnFocusTo={chipRef}
+            />
 
             {/* ── 사이드바 드로어 ── */}
             {isSidebarOpen && (
@@ -451,8 +568,8 @@ const App: React.FC = () => {
                         {/* 사이드바 헤더 */}
                         <div className="flex items-center justify-between px-5 pt-14 pb-6 border-b border-outline-variant">
                             <div>
-                                <h2 className="font-headline font-extrabold text-2xl text-primary">타슈</h2>
-                                <p className="text-xs text-on-surface-variant mt-0.5">대전 공공자전거</p>
+                                <h2 className="font-headline font-extrabold text-2xl text-on-surface">공공자전거</h2>
+                                <p className="text-xs text-on-surface-variant mt-0.5">최적 경로 찾기</p>
                             </div>
                             <button
                                 onClick={() => setIsSidebarOpen(false)}
@@ -473,7 +590,7 @@ const App: React.FC = () => {
                         {/* 푸터 */}
                         <div className="px-5 py-6 border-t border-outline-variant">
                             <p className="text-xs text-on-surface-variant">
-                                자전거 대수는 약 5분마다 업데이트됩니다. 현장과 다를 수 있어요.
+                                대여 가능 대수는 매시 정각에 갱신되며 최대 1시간 전 값입니다. 현장과 다를 수 있어요.
                             </p>
                         </div>
                     </div>

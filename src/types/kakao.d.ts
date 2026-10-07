@@ -52,8 +52,22 @@ declare global {
                 y: number;
             }
 
+            interface Coord2AddressResultItem {
+                address: { address_name: string } | null;
+                road_address: { address_name: string } | null;
+            }
+
             class Geocoder {
                 constructor();
+                /** 좌표 → 주소. x=경도, y=위도 */
+                coord2Address(
+                    x: number,
+                    y: number,
+                    callback: (
+                        result: Coord2AddressResultItem[],
+                        status: SearchStatus
+                    ) => void
+                ): void;
                 transCoord(
                     x: number,
                     y: number,

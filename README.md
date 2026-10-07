@@ -46,7 +46,7 @@ https://velog.io/@hoohoo0889/%EB%8C%80%EC%A0%84-%ED%86%A0%EB%B0%95%EC%9D%B4-%EA%
 
 ### 온라인 데모
 ```
-https://jeric1223.github.io/TASHU-OPTIMAL-ROUTE-FINDER/
+https://jeric1223.github.io/PUBLIC-BIKE-ROUTE-FINDER/
 ```
 
 ### 앱으로 설치하기
@@ -93,7 +93,7 @@ MIT License - 자유롭게 사용, 수정, 배포 가능
 
 ## 📞 문의 & 피드백
 
-- **Issues**: [GitHub Issues](https://github.com/kimjaehyeon/TASHU-OPTIMAL-ROUTE-FINDER/issues)
+- **Issues**: [GitHub Issues](https://github.com/kimjaehyeon/PUBLIC-BIKE-ROUTE-FINDER/issues)
 - **Email**: soehd0889@gmail.com
 
 ---

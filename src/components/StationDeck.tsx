@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { StationWithDistance } from '../types/index';
+import type { CityId, StationWithDistance } from '../types/index';
 import FavoriteButton from './FavoriteButton';
 import { useCountUp } from '../hooks/useCountUp';
 import UiIcon from './UiIcon';
 import { calculateWalkTime } from '../services/routeService';
+import StationAddress from './StationAddress';
 
 export const formatDistance = (km: number) => (km < 1 ? `${Math.round(km * 1000)}m` : `${km.toFixed(1)}km`);
 export const walkMinutes = (km: number) => Math.max(1, calculateWalkTime(km));
@@ -14,13 +15,14 @@ interface StationDeckProps {
     onSelect: (index: number) => void;
     onMakeRoute: (station: StationWithDistance) => void;
     onShowAll: () => void;
-    emptyMessage: { title: string; sub: string; canShowAll: boolean };
+    emptyMessage: { title: string; sub: string; canShowAll: boolean; action?: { label: string; onClick: () => void } };
+    city: CityId;
 }
 
 const Count: React.FC<{ n: number }> = ({ n }) => <span className="tabular-nums">{useCountUp(n)}</span>;
 
 // 가운데 카드가 선택이다. 좌우로 넘기면 선택이 바뀌고, 핀/화살표/방향키는 카드를 가운데로 스크롤한다.
-const StationDeck: React.FC<StationDeckProps> = ({ stations, selectedIndex, onSelect, onMakeRoute, onShowAll, emptyMessage }) => {
+const StationDeck: React.FC<StationDeckProps> = ({ stations, selectedIndex, onSelect, onMakeRoute, onShowAll, emptyMessage, city }) => {
     const deckRef = useRef<HTMLElement | null>(null);
     const lockUntil = useRef(0);
     const raf = useRef(0);
@@ -35,10 +37,15 @@ const StationDeck: React.FC<StationDeckProps> = ({ stations, selectedIndex, onSe
         deck.scrollTo({ left: card.offsetLeft - (deck.clientWidth - card.offsetWidth) / 2, behavior: smooth && !reduce ? 'smooth' : 'auto' });
     }, []);
 
-    // 바깥(지도 핀 등)에서 선택이 바뀌면 카드를 가운데로 가져온다
+    // 바깥(지도 핀 등)에서 선택이 바뀌거나 목록 구성이 바뀌면 카드를 가운데로 가져온다.
+    // stations 배열은 위치·데이터 갱신마다 새 참조가 되므로 id 목록으로만 비교한다.
+    // 참조로 비교하면 첫 스와이프 도중 갱신이 끼어들 때 카드가 제자리로 끌려간다.
+    const stationsKey = stations.map((s) => s.id).join(',');
+    const touching = useRef(false);
     useEffect(() => {
-        if (selectedIndex !== lastReported.current) scrollToCard(selectedIndex, true);
-    }, [selectedIndex, stations, scrollToCard]);
+        if (touching.current || selectedIndex === lastReported.current) return;
+        scrollToCard(selectedIndex, true);
+    }, [selectedIndex, stationsKey, scrollToCard]);
 
     // 가운데에서 멀어질수록 작고 흐리게. 스크롤 위치에서 바로 계산하므로 슬라이드하는 동안 지금 가운데인 카드가 그대로 커 보인다.
     const applyScale = useCallback(() => {
@@ -61,7 +68,6 @@ const StationDeck: React.FC<StationDeckProps> = ({ stations, selectedIndex, onSe
 
     // 스크롤이 멈췄는데 카드가 가운데에서 벗어나 있으면(모바일에서 스냅이 덜 붙는 경우) 가장 가까운 카드를 가운데로 붙인다
     const settleTimer = useRef(0);
-    const touching = useRef(false);
     const settle = () => {
         window.clearTimeout(settleTimer.current);
         settleTimer.current = window.setTimeout(() => {
@@ -71,8 +77,8 @@ const StationDeck: React.FC<StationDeckProps> = ({ stations, selectedIndex, onSe
             const card = deck.children[best] as HTMLElement | undefined;
             if (best < 0 || !card) return;
             if (best !== lastReported.current) { lastReported.current = best; onSelect(best); }
-            if (Math.abs(deck.scrollLeft - (card.offsetLeft - (deck.clientWidth - card.offsetWidth) / 2)) > 2) scrollToCard(best, true);
-        }, 140);
+            if (Math.abs(deck.scrollLeft - (card.offsetLeft - (deck.clientWidth - card.offsetWidth) / 2)) > 24) scrollToCard(best, true);
+        }, 200);
     };
     useEffect(() => () => window.clearTimeout(settleTimer.current), []);
 
@@ -190,6 +196,9 @@ const StationDeck: React.FC<StationDeckProps> = ({ stations, selectedIndex, onSe
                         {emptyMessage.canShowAll && (
                             <button onClick={onShowAll} className="press min-h-[44px] px-[18px] rounded-[14px] bg-gray-100 text-sm font-bold text-on-surface">전체 보기</button>
                         )}
+                        {emptyMessage.action && (
+                            <button onClick={emptyMessage.action.onClick} className="press min-h-[44px] px-[18px] rounded-[14px] bg-gray-100 text-sm font-bold text-on-surface">{emptyMessage.action.label}</button>
+                        )}
                     </div>
                 ) : stations.map((s, i) => {
                     const on = i === selectedIndex;
@@ -207,7 +216,7 @@ const StationDeck: React.FC<StationDeckProps> = ({ stations, selectedIndex, onSe
                         >
                             <div className="flex items-start justify-between gap-2">
                                 <h2 className="min-h-[44px] text-base font-semibold leading-[1.4] text-on-surface line-clamp-2" style={{ textWrap: 'balance' }}>{s.name}</h2>
-                                <FavoriteButton station={s} />
+                                <FavoriteButton station={s} city={city} />
                             </div>
                             <div className="mt-2.5 flex items-end justify-between">
                                 <div className={`text-[40px] leading-none font-bold ${s.parking_count === 0 ? 'text-on-surface-variant' : 'text-on-surface'}`}>
@@ -222,11 +231,11 @@ const StationDeck: React.FC<StationDeckProps> = ({ stations, selectedIndex, onSe
                                 )}
                             </div>
                             <div className="grid transition-[grid-template-rows] duration-[400ms]" style={{ gridTemplateRows: on ? '1fr' : '0fr', transitionTimingFunction: 'var(--spring)' }}>
-                                <p className="min-h-0 overflow-hidden text-xs text-on-surface-variant" style={{ paddingTop: on ? 8 : 0 }}>{s.address}</p>
+                                <p className="min-h-0 overflow-hidden text-xs text-on-surface-variant" style={{ paddingTop: on ? 8 : 0 }}><StationAddress station={s} enabled={Math.abs(i - selectedIndex) <= 1} /></p>
                             </div>
                             <button
                                 onClick={() => onMakeRoute(s)}
-                                className={`press mt-3.5 w-full min-h-[48px] rounded-[14px] text-[15px] font-bold transition-colors ${on ? 'bg-primary text-white' : 'bg-gray-100 text-on-surface'}`}
+                                className={`press mt-3.5 w-full min-h-[48px] rounded-[14px] text-[15px] font-bold transition-colors ${on ? 'bg-primary text-on-primary' : 'bg-gray-100 text-on-surface'}`}
                             >
                                 {s.parking_count === 0 ? '여기로 반납하는 경로 만들기' : '여기서 빌리는 경로 만들기'}
                             </button>

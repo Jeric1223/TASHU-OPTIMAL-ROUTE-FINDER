@@ -13,8 +13,8 @@
 ### 설치
 
 ```bash
-git clone https://github.com/kimjaehyeon/TASHU-OPTIMAL-ROUTE-FINDER.git
-cd TASHU-OPTIMAL-ROUTE-FINDER
+git clone https://github.com/kimjaehyeon/PUBLIC-BIKE-ROUTE-FINDER.git
+cd PUBLIC-BIKE-ROUTE-FINDER
 npm install
 ```
 
@@ -98,7 +98,7 @@ src/
 
 ### 배포
 
-GitHub Actions가 정류소 데이터를 갱신·빌드한 뒤 GitHub Pages(`/TASHU-OPTIMAL-ROUTE-FINDER/`)로 배포한다. 별도 프록시 서버는 없다.
+GitHub Actions가 정류소 데이터를 갱신·빌드한 뒤 GitHub Pages(`/PUBLIC-BIKE-ROUTE-FINDER/`)로 배포한다. 별도 프록시 서버는 없다.
 
 ---
 

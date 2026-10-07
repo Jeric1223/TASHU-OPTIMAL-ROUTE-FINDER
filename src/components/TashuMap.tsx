@@ -19,7 +19,7 @@ import { defaults as defaultControls } from 'ol/control/defaults';
 import { defaults as defaultInteractions } from 'ol/interaction/defaults';
 import type { FeatureLike } from 'ol/Feature';
 import type BaseLayer from 'ol/layer/Base';
-import type { Station, StationWithDistance, Coordinates, OptimalRoute } from '../types';
+import type { Station, StationWithDistance, Coordinates, OptimalRoute, CityId } from '../types';
 import { fetchRoadPath, lonLatOf } from '../services/roadRouteService';
 import type { LonLat } from '../services/roadRouteService';
 
@@ -34,6 +34,8 @@ interface TashuMapProps {
   /** 내 위치 → 선택한 정류소 도보선과 '도보 N분' 말풍선 (주변 탭) */
   walkLine?: { from: Coordinates; to: Coordinates; label: string } | null;
   clickedStationId?: string | null;
+  /** 브랜드색 테마(data-city)를 정하고, 바뀌면 캔버스 마커를 다시 그린다 */
+  city: CityId;
   onStationClick: (station: Station) => void;
   /** 정류소·클러스터가 아닌 지도 빈 곳을 탭했을 때 */
   onMapClick?: () => void;
@@ -77,11 +79,13 @@ const IMAGE_PIXEL_RATIO = 2;
 
 type PillState = 'available' | 'empty' | 'selected';
 
-// 시안 D: 흰 알약에 숫자만. 선택되면 초록으로 채운다.
-const PILL_COLORS: Record<PillState, { bg: string; fg: string }> = {
-  available: { bg: '#FFFFFF', fg: '#14171C' },
-  empty: { bg: '#FFFFFF', fg: '#7A828C' },
-  selected: { bg: '#006A3C', fg: '#FFFFFF' },
+// 시안 D: 흰 알약에 숫자만. 선택되면 도시 브랜드색으로 채운다 (--brand / --on-brand, data-city로 전환).
+const readCssVar = (name: string, fallback: string) =>
+  getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+
+const pillColors = (state: PillState): { bg: string; fg: string } => {
+  if (state === 'selected') return { bg: readCssVar('--brand', '#FF9A24'), fg: readCssVar('--on-brand', '#14171C') };
+  return state === 'empty' ? { bg: '#FFFFFF', fg: '#7A828C' } : { bg: '#FFFFFF', fg: '#14171C' };
 };
 
 /** 논리 px 크기의 캔버스를 만들고 2배 스케일을 적용한다. 그림자가 잘리지 않게 사방 여백을 둔다. */
@@ -105,7 +109,7 @@ const drawPill = (state: PillState, count: number) => {
   const PAD_X = 9;
   const font = `700 14px ${FONT_STACK}`;
   const label = String(count);
-  const colors = PILL_COLORS[state];
+  const colors = pillColors(state);
 
   const measure = document.createElement('canvas').getContext('2d');
   if (!measure) return null;
@@ -151,7 +155,7 @@ const drawCluster = (count: number) => {
 
   ctx.beginPath();
   ctx.arc(c, c, D / 2, 0, Math.PI * 2);
-  ctx.fillStyle = '#006A3C';
+  ctx.fillStyle = '#14171C'; // 강조색은 선택 핀·주 버튼에만 쓴다
   ctx.fill();
   ctx.lineWidth = 3;
   ctx.strokeStyle = '#FFFFFF';
@@ -222,7 +226,7 @@ const walkStyle = new Style({
 });
 const bikeStyle = new Style({
   stroke: new Stroke({
-    color: 'rgba(0, 106, 60, 0.8)',
+    color: 'rgba(20, 23, 28, 0.8)',
     width: 5,
     lineCap: 'round',
     lineJoin: 'round',
@@ -271,6 +275,7 @@ const TashuMap: React.FC<TashuMapProps> = ({
   visibleStationIds,
   walkLine,
   clickedStationId,
+  city,
   onStationClick,
   onMapClick,
   route,
@@ -292,6 +297,13 @@ const TashuMap: React.FC<TashuMapProps> = ({
   onStationClickRef.current = onStationClick;
   const onMapClickRef = useRef(onMapClick);
   onMapClickRef.current = onMapClick;
+
+  // 도시 테마 반영 (캔버스 마커는 CSS 변수를 못 따라가므로 캐시를 비워 다시 그린다)
+  useEffect(() => {
+    document.documentElement.dataset.city = city;
+    styleCache.clear();
+    stationLayersRef.current.forEach((l) => l.changed());
+  }, [city]);
 
   // 지도 1회 생성
   useEffect(() => {
@@ -444,7 +456,7 @@ const TashuMap: React.FC<TashuMapProps> = ({
 
     const pinAt = (label: string, lonLat: [number, number], tone: 'white' | 'muted' | 'accent') => {
       const el = document.createElement('div');
-      const color = tone === 'accent' ? 'bg-[#006A3C] text-white' : tone === 'muted' ? 'bg-white text-[#7A828C]' : 'bg-white text-[#14171C]';
+      const color = tone === 'accent' ? 'bg-primary text-on-primary' : tone === 'muted' ? 'bg-white text-[#7A828C]' : 'bg-white text-[#14171C]';
       el.className = `px-3 min-w-[36px] h-8 grid place-items-center rounded-2xl text-sm font-bold whitespace-nowrap shadow-[0_2px_8px_rgba(20,23,28,0.25)] ${color}`;
       el.textContent = label;
       const overlay = new Overlay({ element: el, positioning: 'center-center', position: fromLonLat(lonLat), stopEvent: false });

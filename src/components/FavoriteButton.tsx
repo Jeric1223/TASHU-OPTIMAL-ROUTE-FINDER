@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import type { Station } from '../types/index';
+import type { CityId, Station } from '../types/index';
 import UiIcon from './UiIcon';
 import { addFavorite, removeFavorite, isFavorite } from '../services/favoriteService';
 
 interface FavoriteButtonProps {
     station: Station;
+    city?: CityId;
     onToggle?: (isFavorited: boolean) => void;
 }
 
-const FavoriteButton: React.FC<FavoriteButtonProps> = ({ station, onToggle }) => {
+const FavoriteButton: React.FC<FavoriteButtonProps> = ({ station, city, onToggle }) => {
     const [isFav, setIsFav] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -24,7 +25,7 @@ const FavoriteButton: React.FC<FavoriteButtonProps> = ({ station, onToggle }) =>
                 setIsFav(false);
                 onToggle?.(false);
             } else {
-                const success = addFavorite(station);
+                const success = addFavorite(station, undefined, city);
                 if (success) {
                     setIsFav(true);
                     onToggle?.(true);
@@ -45,7 +46,7 @@ const FavoriteButton: React.FC<FavoriteButtonProps> = ({ station, onToggle }) =>
             aria-label={isFav ? '즐겨찾기 제거' : '즐겨찾기 추가'}
             title={isFav ? '즐겨찾기 제거' : '즐겨찾기 추가'}
         >
-            <UiIcon name="star" filled={isFav} className={`w-5 h-5 ${isFav ? 'text-primary' : 'text-gray-400'}`} />
+            <UiIcon name="star" filled={isFav} className={`w-5 h-5 ${isFav ? 'text-on-surface' : 'text-gray-400'}`} />
         </button>
     );
 };
