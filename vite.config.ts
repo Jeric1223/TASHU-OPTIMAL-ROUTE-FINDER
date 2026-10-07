@@ -15,7 +15,7 @@ export default defineConfig(() => {
                 manifest: {
                     name: '공공자전거 최적 경로 찾기',
                     short_name: '공공자전거',
-                    description: '대전시 공공자전거 타슈의 최적 경로를 찾아주는 PWA 앱',
+                    description: '대전 타슈·서울 따릉이의 가까운 정류소와 최적 경로를 찾아주는 PWA 앱',
                     theme_color: '#FF9A24',
                     background_color: '#f5f7fa',
                     display: 'standalone',
