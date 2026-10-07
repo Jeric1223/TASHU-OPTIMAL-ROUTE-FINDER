@@ -3,11 +3,11 @@
 
 대전 '타슈'와 서울 '따릉이'의 가까운 정류소를 찾고, 자전거 경로를 안내하는 PWA 웹 앱입니다.
 
-[![메인 화면](./docs/hero.jpg)](./docs/hero.jpg)
-
 온라인 데모: https://jeric1223.github.io/PUBLIC-BIKE-ROUTE-FINDER/
 
-[개발 후기 (velog)](https://velog.io/@hoohoo0889/%EB%8C%80%EC%A0%84-%ED%86%A0%EB%B0%95%EC%9D%B4-%EA%B0%9C%EB%B0%9C%EC%9E%90%EA%B0%80-%ED%83%80%EC%8A%88-%EC%93%B0%EB%8B%A4-%EB%B9%A1%EC%B3%90%EC%84%9C-%EB%A7%8C%EB%93%A0-%EC%95%B1-%EC%84%9C%EB%B2%84-%EB%B9%84%EC%9A%A9-0%EC%9B%90)
+[타슈 경로 찾기 개발 후기 (velog)](https://velog.io/@hoohoo0889/%EB%8C%80%EC%A0%84-%ED%86%A0%EB%B0%95%EC%9D%B4-%EA%B0%9C%EB%B0%9C%EC%9E%90%EA%B0%80-%ED%83%80%EC%8A%88-%EC%93%B0%EB%8B%A4-%EB%B9%A1%EC%B3%90%EC%84%9C-%EB%A7%8C%EB%93%A0-%EC%95%B1-%EC%84%9C%EB%B2%84-%EB%B9%84%EC%9A%A9-0%EC%9B%90)
+
+[타슈 따릉이 통합 개발 후기(velog)](https://velog.io/@hoohoo0889/%EB%8C%80%EC%A0%84-%ED%83%80%EC%8A%88%EC%99%80-%EC%84%9C%EC%9A%B8-%EB%94%B0%EB%A6%89%EC%9D%B4%EB%A5%BC-%ED%95%9C-%EC%95%B1%EC%97%90%EC%84%9C-%EC%B0%BE%EB%8A%94-%EC%9B%B9%EC%95%B1-%EA%B3%B5%EA%B3%B5%EC%9E%90%EC%A0%84%EA%B1%B0-%EC%B5%9C%EC%A0%81-%EA%B2%BD%EB%A1%9C-%EC%B0%BE%EA%B8%B0-%EA%B0%9C%EB%B0%9C%EA%B8%B0)
 
 ## 주요 기능
 
