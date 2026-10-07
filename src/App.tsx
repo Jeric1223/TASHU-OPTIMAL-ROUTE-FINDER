@@ -190,10 +190,18 @@ const App: React.FC = () => {
 
     // 가장 가까운 정류소가 서비스 반경 밖이면 주변 목록을 비우고 빈 상태를 보여준다
     const isOutOfService = sortedByDistance.length > 0 && (sortedByDistance[0].distance ?? 0) > SERVICE_RADIUS_KM;
-    const nearbyStations = useMemo(
-        () => (isOutOfService ? [] : sortedByDistance.slice(0, 20)),
-        [sortedByDistance, isOutOfService]
-    );
+    // 내 위치가 도시 밖이면 도시 중심에서 가까운 정류소를 둘러보게 한다.
+    // 내 위치 기준 거리·도보 시간은 의미가 없으므로 distance를 비워 카드와 안내 문구에서 숨긴다.
+    const isBrowsing = isOutOfService;
+    const nearbyStations = useMemo(() => {
+        if (!isOutOfService) return sortedByDistance.slice(0, 20);
+        const [lat, lon] = CITIES[city].center;
+        return stations
+            .map((s) => ({ s, d: haversineDistance({ latitude: lat, longitude: lon }, { latitude: s.x_pos, longitude: s.y_pos }) }))
+            .sort((a, b) => a.d - b.d)
+            .slice(0, 20)
+            .map(({ s }): StationWithDistance => s);
+    }, [sortedByDistance, isOutOfService, stations, city]);
 
     const visibleStations = useMemo(
         () => nearbyFilter === 'avail' ? nearbyStations.filter(st => st.parking_count > 0) : nearbyStations,
@@ -307,13 +315,13 @@ const App: React.FC = () => {
 
     // 선택한 정류소까지 내 위치에서 걷는 선과 소요 시간 (주변 탭)
     const walkLine = useMemo(() => {
-        if (activeTab !== Tab.Nearby || !userLocation || !selected) return null;
+        if (activeTab !== Tab.Nearby || !userLocation || !selected || isBrowsing) return null;
         return {
             from: userLocation,
             to: { latitude: selected.x_pos, longitude: selected.y_pos },
             label: `도보 ${walkMinutes(selected.distance ?? 0)}분`,
         };
-    }, [activeTab, userLocation, selected]);
+    }, [activeTab, userLocation, selected, isBrowsing]);
 
     // 데이터 로딩 화면
     if (isDataLoading && !everLoaded) {
@@ -389,10 +397,12 @@ const App: React.FC = () => {
                     <SegToggle value={nearbyFilter} onChange={setNearbyFilter} className="w-[208px] nav-pill !bg-gray-100/90" />
                     <p key={selected?.id ?? 'none'} className="nav-pill animate-slide-up px-4 py-2.5 rounded-[20px] text-[15px] font-semibold leading-snug text-on-surface">
                         {selected
-                            ? selected.parking_count === 0
+                            ? isBrowsing
+                                ? <><b className="text-[17px] font-bold">{selected.name}</b>{selected.parking_count === 0 ? ' 정류소는 자전거가 없어요' : <> 정류소에 자전거가 <b className="text-[17px] font-bold tabular-nums">{heroCount}</b>대 있어요</>}</>
+                            : selected.parking_count === 0
                                 ? <><b className="text-[17px] font-bold">{formatDistance(selected.distance ?? 0)}</b> 앞 정류소는 자전거가 없어요</>
                                 : <><b className="text-[17px] font-bold">{formatDistance(selected.distance ?? 0)}</b> 앞에 자전거가 <b className="text-[17px] font-bold tabular-nums">{heroCount}</b>대 있어요</>
-                            : isSearching ? '주변 정류소를 찾는 중이에요' : isOutOfService ? '근처에 공공자전거가 없어요' : '위치를 켜면 가까운 자전거를 알려드려요'}
+                            : isSearching ? '주변 정류소를 찾는 중이에요' : '위치를 켜면 가까운 자전거를 알려드려요'}
                         {ageMin !== null && (
                             <span className={`block mt-0.5 text-xs font-medium ${ageMin > 30 ? 'text-on-surface-variant' : 'text-on-surface'}`}>
                                 <span className="tabular-nums">{ageMin}</span>분 전 기준{ageMin > 30 && ' · 지금과 다를 수 있어요'}
@@ -443,9 +453,7 @@ const App: React.FC = () => {
                     emptyMessage={
                         nearbyStations.length > 0
                             ? { title: '대여 가능한 정류소가 없어요', sub: '잠시 후 다시 확인하거나 전체 정류소를 보세요', canShowAll: true }
-                            : isOutOfService
-                                ? { title: '근처에 공공자전거가 없어요', sub: `내 위치에서 ${SERVICE_RADIUS_KM}km 안에 정류소가 없어요`, canShowAll: false, action: { label: '도시 둘러보기', onClick: openCitySheet } }
-                                : { title: isSearching ? '주변 정류소를 찾는 중...' : '주변 정류소가 없어요', sub: '위치 정보를 불러오면 가까운 정류소가 표시됩니다.', canShowAll: false }
+                            : { title: isSearching ? '주변 정류소를 찾는 중...' : '주변 정류소가 없어요', sub: '위치 정보를 불러오면 가까운 정류소가 표시됩니다.', canShowAll: false }
                     }
                 />
             )}

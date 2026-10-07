@@ -155,14 +155,14 @@ const drawCluster = (count: number) => {
 
   ctx.beginPath();
   ctx.arc(c, c, D / 2, 0, Math.PI * 2);
-  ctx.fillStyle = '#14171C'; // 강조색은 선택 핀·주 버튼에만 쓴다
+  ctx.fillStyle = readCssVar('--brand', '#FF9A24'); // 도시 트레이드마크 색 (타슈 주황 / 따릉이 파랑)
   ctx.fill();
   ctx.lineWidth = 3;
   ctx.strokeStyle = '#FFFFFF';
   ctx.stroke();
 
   ctx.font = `700 ${count < 1000 ? 14 : 13}px ${FONT_STACK}`;
-  ctx.fillStyle = '#FFFFFF';
+  ctx.fillStyle = readCssVar('--on-brand', '#14171C');
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(String(count), c, c + 1);
