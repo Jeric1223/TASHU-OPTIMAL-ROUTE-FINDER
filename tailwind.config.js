@@ -4,18 +4,18 @@ export default {
   theme: {
     extend: {
       colors: {
-        // 타슈 디자인 시스템 — 잠금 팔레트: brand 3단 + gray 8단 + danger. 그 외 색상 없음.
-        primary: '#006A3C',
-        'primary-dim': '#00542F',
-        'primary-container': '#E8F5EE',
-        'on-primary': '#FFFFFF',
-        'on-primary-container': '#006A3C',
-        'inverse-primary': '#E8F5EE',
+        // 타슈 디자인 시스템 — 잠금 팔레트: brand(도시별 CSS 변수) + 중립 + gray 8단 + danger. 그 외 색상 없음.
+        primary: 'var(--brand)',
+        'primary-dim': 'var(--brand-hover)',
+        'primary-container': 'var(--fill)',
+        'on-primary': 'var(--on-brand)',
+        'on-primary-container': 'var(--fg, #14171C)',
+        'inverse-primary': 'var(--fill)',
         surface: '#F7F8FA',
         'surface-bright': '#F7F8FA',
         'surface-dim': '#E2E5E9',
         'surface-variant': '#E2E5E9',
-        'surface-tint': '#006A3C',
+        'surface-tint': 'var(--brand)',
         'surface-container': '#EFF1F4',
         'surface-container-low': '#EFF1F4',
         'surface-container-high': '#E2E5E9',

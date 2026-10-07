@@ -5,7 +5,7 @@
 //
 // 모든 좌표·정류소는 합성 데이터이며 운영 데이터를 쓰지 않는다.
 
-import { haversineDistance } from '../src/services/tashuService';
+import { haversineDistance, parseStationData, minutesSince, SERVICE_RADIUS_KM } from '../src/services/tashuService';
 import {
     calculateOptimalRoute,
     calculateWalkTime,
@@ -20,6 +20,8 @@ import {
     updateFavoriteNickname,
     clearAllFavorites,
 } from '../src/services/favoriteService';
+import { nearestCity, resolveInitialCity, getSavedCity, saveCity, isNearCity, getReturnSlots, stationSubLabel } from '../src/services/cityService';
+import { splitStationName, mapSeoulRow, parsePage } from '../scripts/seoul-stations.mjs';
 import type { Station } from '../src/types/index';
 
 let pass = 0;
@@ -159,6 +161,94 @@ check('전체 삭제 성공', (addFavorite(favStation), clearAllFavorites(), get
 store.set('tashu_favorites', '{쓰레기 데이터');
 check('손상된 저장소에서도 빈 배열 반환 (크래시 없음)', Array.isArray(getFavorites()) && getFavorites().length === 0);
 clearAllFavorites();
+
+// ---------------------------------------------------------------
+// 정류소 데이터 파싱 / 신선도 / 서비스 반경
+const sampleStation = { station_id: 'S1', name: '테스트', x_pos: 36.35, y_pos: 127.38, parking_count: 3 };
+
+check('parseStationData: 배열(이전 형식) → updatedAt null',
+    (() => { const d = parseStationData([sampleStation]); return d.stations.length === 1 && d.updatedAt === null; })());
+check('parseStationData: 서울 필드(rack_count, station_no) 유지, 없으면 키 생성 안 함',
+    (() => {
+        const d = parseStationData({ stations: [{ ...sampleStation, rack_count: 15, station_no: '102' }, sampleStation] });
+        return d.stations[0].rack_count === 15 && d.stations[0].station_no === '102' && !('rack_count' in d.stations[1]) && !('station_no' in d.stations[1]);
+    })());
+check('parseStationData: 객체 형식 → updatedAt 유지',
+    (() => { const d = parseStationData({ city: 'daejeon', updatedAt: '2026-10-07T01:00:00.000Z', stations: [sampleStation] }); return d.stations.length === 1 && d.updatedAt === '2026-10-07T01:00:00.000Z'; })());
+check('parseStationData: updatedAt 누락 → null',
+    parseStationData({ stations: [sampleStation] }).updatedAt === null);
+check('parseStationData: 파싱 불가 updatedAt → null',
+    parseStationData({ stations: [], updatedAt: '어제' }).updatedAt === null);
+check('parseStationData: 잘못된 형식은 throw',
+    (() => { try { parseStationData({ foo: 1 }); return false; } catch { return true; } })());
+check('parseStationData: null은 throw',
+    (() => { try { parseStationData(null); return false; } catch { return true; } })());
+
+const t0 = Date.parse('2026-10-07T01:00:00.000Z');
+check('minutesSince: 12분 경과', minutesSince('2026-10-07T01:00:00.000Z', t0 + 12 * 60000 + 30000) === 12);
+check('minutesSince: 미래 시각은 0으로 보정', minutesSince('2026-10-07T01:00:00.000Z', t0 - 5 * 60000) === 0);
+
+// 서울 시청 → 대전 정류소 거리는 서비스 반경을 크게 넘는다
+const seoulCity = { latitude: 37.5665, longitude: 126.978 };
+check('서비스 반경: 서울 위치는 대전 정류소 기준 반경 밖',
+    haversineDistance(seoulCity, { latitude: 36.35, longitude: 127.38 }) > SERVICE_RADIUS_KM);
+check('서비스 반경: 대전 시내는 반경 안',
+    haversineDistance({ latitude: 36.351, longitude: 127.385 }, { latitude: 36.35, longitude: 127.38 }) < SERVICE_RADIUS_KM);
+
+// ---------------------------------------------------------------
+// 따릉이 수집 매핑 (scripts/seoul-stations.mjs)
+const sn = splitStationName('102. 망원역 1번출구 앞');
+check('따릉이 이름 분리: 번호/이름', sn.no === '102' && sn.name === '망원역 1번출구 앞');
+check('따릉이 이름 분리: 번호 없는 이름은 그대로', (() => { const r = splitStationName('임시 대여소'); return r.no === undefined && r.name === '임시 대여소'; })());
+
+const seoulRow = { stationId: 'ST-4', stationName: '102. 망원역 1번출구 앞', stationLatitude: '37.555649', stationLongitude: '126.910629', parkingBikeTotCnt: '5', rackTotCnt: '20' };
+const mapped = mapSeoulRow(seoulRow);
+check('따릉이 매핑: 필드 변환', !!mapped && mapped.id === 'ST-4' && mapped.name === '망원역 1번출구 앞' && mapped.station_no === '102' && mapped.address === '');
+check('따릉이 매핑: x_pos=위도, y_pos=경도 (숫자)', !!mapped && mapped.x_pos === 37.555649 && mapped.y_pos === 126.910629);
+check('따릉이 매핑: 대수/거치대', !!mapped && mapped.parking_count === 5 && mapped.rack_count === 20);
+check('따릉이 매핑: 좌표 없으면 null', mapSeoulRow({ ...seoulRow, stationLatitude: '' }) === null && mapSeoulRow({ ...seoulRow, stationLatitude: '0', stationLongitude: '0' }) === null);
+check('따릉이 매핑: rackTotCnt 0이면 rack_count 생략', mapSeoulRow({ ...seoulRow, rackTotCnt: '0' })?.rack_count === undefined);
+check('따릉이 응답 파싱: total/rows', (() => { const p = parsePage({ rentBikeStatus: { list_total_count: 2, row: [seoulRow, seoulRow] } }); return p.total === 2 && p.rows.length === 2; })());
+check('따릉이 응답 파싱: 오류 응답은 throw', (() => { try { parsePage({ RESULT: { CODE: 'INFO-200' } }); return false; } catch { return true; } })());
+
+// ---------------------------------------------------------------
+// 도시 선택 / 즐겨찾기 도시 구분
+const daejeonLoc = { latitude: 36.35, longitude: 127.38 };
+const seoulLoc = { latitude: 37.55, longitude: 126.99 };
+const busanLoc = { latitude: 35.18, longitude: 129.07 };
+store.clear();
+check('도시 선택: 대전 위치 → daejeon', nearestCity(daejeonLoc) === 'daejeon');
+check('도시 선택: 서울 위치 → seoul', nearestCity(seoulLoc) === 'seoul');
+check('도시 선택: 부산 위치는 더 가까운 대전', nearestCity(busanLoc) === 'daejeon');
+check('시작 도시: 위치가 있으면 위치 우선', (() => { saveCity('daejeon'); return resolveInitialCity(seoulLoc) === 'seoul'; })());
+check('시작 도시: 위치 없으면 저장값', (() => { saveCity('seoul'); return resolveInitialCity(null) === 'seoul'; })());
+check('시작 도시: 저장값도 없으면 대전', (() => { store.clear(); return resolveInitialCity(null) === 'daejeon'; })());
+check('저장값이 손상되면 무시', (() => { store.set('od_city', 'busan'); return getSavedCity() === null; })());
+check('도시 반경: 서울 위치는 서울 안, 대전 밖', isNearCity(seoulLoc, 'seoul') && !isNearCity(seoulLoc, 'daejeon'));
+store.clear();
+
+const seoulFav = mkStation('ST-4', 37.5556, 126.9106, 5);
+addFavorite(seoulFav, undefined, 'seoul');
+store.set('tashu_favorites', JSON.stringify([
+    ...JSON.parse(store.get('tashu_favorites')!),
+    { ...mkStation('OLD', 36.3, 127.4, 1), savedAt: '2026-01-01T00:00:00.000Z' }, // city 없는 이전 항목
+]));
+check('즐겨찾기: 서울 항목은 서울에만', getFavorites('seoul').map((f) => f.id).join() === 'ST-4');
+check('즐겨찾기: city 없는 항목은 대전으로', getFavorites('daejeon').map((f) => f.id).join() === 'OLD');
+check('즐겨찾기: 도시 미지정이면 전체', getFavorites().length === 2);
+check('즐겨찾기: 대전 기본값 저장', (() => { clearAllFavorites(); addFavorite(favStation); return getFavorites()[0].city === 'daejeon'; })());
+clearAllFavorites();
+
+// ---------------------------------------------------------------
+// 서울 전용 표시: 반납 가능 자리, 정류소 번호 보조 문구
+const rackStation = { ...mkStation('ST-9', 37.55, 126.91, 8), rack_count: 20, station_no: '102' };
+check('반납 자리: 서울은 거치대 - 대여 가능', getReturnSlots(rackStation, 'seoul') === 12);
+check('반납 자리: 대수가 거치대보다 많아도 0 미만 없음', getReturnSlots({ ...rackStation, parking_count: 25 }, 'seoul') === 0);
+check('반납 자리: 대전은 표시 안 함(null)', getReturnSlots(rackStation, 'daejeon') === null);
+check('반납 자리: rack_count 없으면 null', getReturnSlots(mkStation('S', 37, 127, 3), 'seoul') === null);
+check('보조 문구: 주소가 있으면 주소', stationSubLabel({ ...rackStation, address: '서울 마포구' }) === '서울 마포구');
+check('보조 문구: 주소 없으면 정류소 번호', stationSubLabel({ ...rackStation, address: '' }) === '102번 정류소');
+check('보조 문구: 둘 다 없으면 빈 문자열', stationSubLabel({ ...rackStation, address: '', station_no: undefined }) === '');
 
 // ---------------------------------------------------------------
 console.log(`\n================ 결과: ${pass} 통과 / ${fail} 실패 ================`);

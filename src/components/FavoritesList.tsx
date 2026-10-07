@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import type { Coordinates, FavoriteStation } from '../types/index';
+import type { CityId, Coordinates, FavoriteStation } from '../types/index';
 import { getFavorites, removeFavorite, updateFavoriteNickname } from '../services/favoriteService';
 import { haversineDistance } from '../services/tashuService';
+import StationAddress from './StationAddress';
 import { calculateWalkTime } from '../services/routeService';
 import { useCountUp } from '../hooks/useCountUp';
 import UiIcon from './UiIcon';
@@ -13,11 +14,15 @@ interface FavoritesListProps {
     onIdsChange?: (ids: string[]) => void;
     /** 거리 표시 기준점. 없으면 거리를 숨긴다. */
     userLocation?: Coordinates | null;
+    /** 이 도시에 저장한 정류소만 보여준다 */
+    city: CityId;
+    /** 검색 알약 왼쪽에 붙는 도시 칩 */
+    cityChip: React.ReactNode;
 }
 
 const NICKNAME_MAX = 20;
 
-const FavoritesList: React.FC<FavoritesListProps> = ({ onBack, onStationSelect, onIdsChange, userLocation }) => {
+const FavoritesList: React.FC<FavoritesListProps> = ({ onBack, onStationSelect, onIdsChange, userLocation, city, cityChip }) => {
     const [favorites, setFavorites] = useState<FavoriteStation[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -33,10 +38,10 @@ const FavoritesList: React.FC<FavoritesListProps> = ({ onBack, onStationSelect, 
 
     useEffect(() => {
         setIsLoading(true);
-        try { setFavorites(getFavorites()); }
+        try { setFavorites(getFavorites(city)); }
         catch (e) { console.error(e); }
         finally { setIsLoading(false); }
-    }, []);
+    }, [city]);
 
     const handleRemove = (stationId: string) => {
         if (removeFavorite(stationId)) {
@@ -66,14 +71,20 @@ const FavoritesList: React.FC<FavoritesListProps> = ({ onBack, onStationSelect, 
         // 시안 D: 위쪽은 실제 지도가 그대로 보이고, 아래에 목록 시트가 올라온다.
         // 시트는 탭바(z-nav)보다 아래에 깔려 탭바 알약이 그 위에 떠 있다.
         <div className="fixed inset-0 z-[var(--z-sheet)] pointer-events-none animate-fade-in">
-            <button
-                onClick={onBack}
-                className="press nav-pill pointer-events-auto absolute top-0 inset-x-3 mt-3 min-h-[52px] flex items-center gap-2.5 px-[18px] rounded-[26px] text-base text-on-surface-variant text-left min-[900px]:right-auto min-[900px]:w-[380px] min-[900px]:left-4 min-[900px]:top-4 min-[900px]:mt-0"
+            <div
+                className="nav-pill pointer-events-auto absolute top-0 inset-x-3 mt-3 min-h-[52px] flex items-stretch rounded-[26px] min-[900px]:right-auto min-[900px]:w-[380px] min-[900px]:left-4 min-[900px]:top-4 min-[900px]:mt-0"
                 style={{ top: 'var(--safe-area-inset-top)' }}
             >
-                <UiIcon name="search" className="w-[22px] h-[22px]" />
-                정류소 더 찾아보기
-            </button>
+                {cityChip}
+                <i className="self-center w-px h-6 bg-gray-900/15" aria-hidden="true" />
+                <button
+                    onClick={onBack}
+                    className="press flex-1 min-h-[52px] flex items-center gap-2 pl-3.5 pr-[18px] rounded-r-[26px] text-base text-on-surface-variant text-left"
+                >
+                    <UiIcon name="search" className="w-[22px] h-[22px]" />
+                    정류소 더 찾아보기
+                </button>
+            </div>
             <section
                 aria-label="저장한 정류소"
                 className="pointer-events-auto absolute inset-x-0 bottom-0 flex flex-col rounded-t-[28px] bg-surface shadow-[0_-8px_32px_rgba(20,23,28,0.12),0_0_0_1px_rgba(20,23,28,0.05)] min-[900px]:inset-x-auto min-[900px]:left-4 min-[900px]:w-[400px] min-[900px]:bottom-4 min-[900px]:rounded-3xl"
@@ -90,7 +101,7 @@ const FavoritesList: React.FC<FavoritesListProps> = ({ onBack, onStationSelect, 
 
                 {isLoading ? (
                     <div className="flex justify-center py-12">
-                        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                        <div className="w-8 h-8 border-2 border-on-surface border-t-transparent rounded-full animate-spin" />
                     </div>
                 ) : favorites.length === 0 ? (
                     <div className="mt-6 rounded-[20px] bg-white border border-outline-variant px-5 py-8 text-center">
@@ -118,7 +129,7 @@ const FavoritesList: React.FC<FavoritesListProps> = ({ onBack, onStationSelect, 
                                 <li
                                     key={fav.id}
                                     className="bg-white rounded-[18px] animate-slide-up transition-shadow"
-                                    style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards', boxShadow: isSel ? '0 0 0 2px #006A3C' : '0 0 0 1px #E4E6E3' }}
+                                    style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards', boxShadow: isSel ? '0 0 0 2px var(--focus)' : '0 0 0 1px #E2E5E9' }}
                                 >
                                     <div className="flex items-center">
                                         <button
@@ -130,7 +141,7 @@ const FavoritesList: React.FC<FavoritesListProps> = ({ onBack, onStationSelect, 
                                             }}
                                         >
                                             <span className="block font-headline font-bold text-base leading-snug text-on-surface break-words">{title}</span>
-                                            <span className="block text-[13px] leading-snug text-on-surface-variant break-words">{fav.nickname ? fav.name : fav.address}</span>
+                                            <span className="block text-[13px] leading-snug text-on-surface-variant break-words">{fav.nickname ? fav.name : <StationAddress station={fav} />}</span>
                                             {distText && (
                                                 <span className="block mt-1 text-sm font-semibold text-on-surface">
                                                     {distText}{walkMin !== null && ` · 도보 약 ${walkMin}분`}
@@ -173,7 +184,7 @@ const FavoritesList: React.FC<FavoritesListProps> = ({ onBack, onStationSelect, 
                                                 maxLength={NICKNAME_MAX}
                                                 placeholder={fav.name}
                                                 aria-label="별명"
-                                                className="flex-1 min-w-0 h-11 px-3.5 rounded-xl bg-gray-100 text-base text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                                                className="flex-1 min-w-0 h-11 px-3.5 rounded-xl bg-gray-100 text-base text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-on-surface"
                                             />
                                             <button type="submit" className="press w-16 h-11 rounded-xl bg-gray-100 text-sm font-bold text-on-surface">저장</button>
                                         </form>

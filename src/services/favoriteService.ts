@@ -1,14 +1,16 @@
-import type { FavoriteStation, Station } from '../types/index';
+import type { CityId, FavoriteStation, Station } from '../types/index';
 
 const STORAGE_KEY = 'tashu_favorites';
 
 /**
- * Get all favorite stations from localStorage
+ * Get favorite stations from localStorage. city를 주면 그 도시 것만 돌려준다.
+ * city가 없는 항목은 도시 구분 도입 전에 저장된 것이라 대전으로 본다.
  */
-export const getFavorites = (): FavoriteStation[] => {
+export const getFavorites = (city?: CityId): FavoriteStation[] => {
     try {
         const data = localStorage.getItem(STORAGE_KEY);
-        return data ? JSON.parse(data) : [];
+        const all: FavoriteStation[] = data ? JSON.parse(data) : [];
+        return city ? all.filter((fav) => (fav.city ?? 'daejeon') === city) : all;
     } catch (error) {
         console.error('Error reading favorites from localStorage:', error);
         return [];
@@ -18,7 +20,7 @@ export const getFavorites = (): FavoriteStation[] => {
 /**
  * Add a station to favorites
  */
-export const addFavorite = (station: Station, nickname?: string): boolean => {
+export const addFavorite = (station: Station, nickname?: string, city: CityId = 'daejeon'): boolean => {
     try {
         const favorites = getFavorites();
 
@@ -31,6 +33,7 @@ export const addFavorite = (station: Station, nickname?: string): boolean => {
             ...station,
             savedAt: new Date().toISOString(),
             nickname: nickname || undefined,
+            city,
         };
 
         favorites.push(favorite);

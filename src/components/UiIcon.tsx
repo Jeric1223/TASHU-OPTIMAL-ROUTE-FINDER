@@ -15,6 +15,8 @@ const PATHS = {
     refresh: <><path d="M19 12a7 7 0 1 1-2.1-5" /><path d="M19 4.5V8h-3.5" /></>,
     locate: <><circle cx="12" cy="12" r="7.5" /><circle cx="12" cy="12" r="2.6" fill="currentColor" /><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2" /></>,
     navigate: <path d="M20 4 4 10.5l6.5 2.5 2.5 6.5z" />,
+    down: <path d="m6 9.5 6 6 6-6" />,
+    check: <path d="M7 12.4l3.2 3.2 6.8-7.2" />,
     close: <path d="m6 6 12 12M18 6 6 18" />,
     star: <path d="m12 4.5 2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5-3.6-3.5 5-.7z" />,
     alert: <><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5v5" /><circle cx="12" cy="16" r=".6" fill="currentColor" /></>,

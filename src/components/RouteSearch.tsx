@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { LocationSearchResult, OptimalRoute, Station, FavoriteStation } from '../types/index';
+import type { CityId, LocationSearchResult, OptimalRoute, Station, FavoriteStation } from '../types/index';
 import { searchKakaoLocation } from '../services/kakoApiService';
 import { calculateOptimalRoute } from '../services/routeService';
 import { getCurrentLocation } from '../services/locationService';
 import { getFavorites } from '../services/favoriteService';
+import StationAddress from './StationAddress';
 import UiIcon from './UiIcon';
 
 interface RouteSearchProps {
     stations: Station[];
+    city: CityId;
     onRouteFound: (route: OptimalRoute) => void;
     /** 출발·도착 중 하나라도 비거나 바뀌어 기존 경로가 무효가 됐을 때 */
     onRouteClear: () => void;
@@ -22,7 +24,7 @@ const listCard = 'bg-white rounded-[20px] overflow-hidden shadow-[0_6px_24px_rgb
 const listRow = 'press w-full text-left flex items-start gap-3 px-5 py-3 min-h-[52px] border-b border-outline-variant/60 last:border-0 [@media(hover:hover)]:hover:bg-gray-100';
 
 // 시안 D: 유리 카드 하나에 출발/도착 두 줄. 둘 다 정해지면 버튼 없이 바로 경로를 계산한다.
-const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onRouteClear, onError, initialStart, initialDest, focusDestToken = 0 }) => {
+const RouteSearch: React.FC<RouteSearchProps> = ({ stations, city, onRouteFound, onRouteClear, onError, initialStart, initialDest, focusDestToken = 0 }) => {
     const [startInput, setStartInput] = useState('');
     const [destInput, setDestInput] = useState('');
     const [startResults, setStartResults] = useState<LocationSearchResult[]>([]);
@@ -43,11 +45,11 @@ const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onRou
 
     useEffect(() => {
         try {
-            setFavorites(getFavorites());
+            setFavorites(getFavorites(city));
         } catch (error) {
             console.error('즐겨찾기 로드 실패:', error);
         }
-    }, []);
+    }, [city]);
 
     useEffect(() => {
         if (initialStart) {
@@ -159,7 +161,7 @@ const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onRou
         else { setSelectedDest(r); setDestInput(r.name); setShowDestResults(false); }
     };
 
-    const fieldBase = 'grid grid-cols-[34px_1fr_auto] items-center min-h-[48px] focus-within:[&>label]:text-primary';
+    const fieldBase = 'grid grid-cols-[34px_1fr_auto] items-center min-h-[48px] focus-within:[&>label]:text-on-surface';
     const inputBase = 'min-w-0 h-11 text-base text-on-surface bg-transparent outline-none placeholder:text-on-surface-variant text-ellipsis';
 
     return (
@@ -182,7 +184,7 @@ const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onRou
                             type="button"
                             onClick={handleUseCurrentLocation}
                             disabled={isLoadingLocation}
-                            className="press ml-1 min-h-[36px] px-3 rounded-full bg-primary-container text-primary text-xs font-bold disabled:opacity-50"
+                            className="press ml-1 min-h-[36px] px-3 rounded-full bg-primary-container text-on-surface text-xs font-bold disabled:opacity-50"
                         >
                             {isLoadingLocation ? '찾는 중…' : '현재 위치'}
                         </button>
@@ -233,7 +235,7 @@ const RouteSearch: React.FC<RouteSearchProps> = ({ stations, onRouteFound, onRou
                         <button key={fav.id} type="button" onClick={() => pickFavorite(fav)} className={listRow}>
                             <div className="min-w-0">
                                 <p className="text-[15px] font-semibold text-on-surface break-words">{fav.nickname || fav.name}</p>
-                                <p className="text-[13px] text-on-surface-variant break-words">{fav.address}</p>
+                                <p className="text-[13px] text-on-surface-variant break-words"><StationAddress station={fav} /></p>
                             </div>
                         </button>
                     ))}

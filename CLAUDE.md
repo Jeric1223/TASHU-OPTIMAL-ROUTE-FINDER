@@ -150,5 +150,5 @@ npm test                # tests/services.test.ts 실행 (esbuild 번들 후 node
 ## 빌드 결과물
 
 - 프로덕션 빌드는 `dist/` 디렉토리로 출력됩니다
-- 기본 경로는 vite.config.ts에서 `/TASHU-OPTIMAL-ROUTE-FINDER/`로 설정됩니다 (GitHub Pages 기준)
+- 기본 경로는 vite.config.ts에서 `/PUBLIC-BIKE-ROUTE-FINDER/`로 설정됩니다 (GitHub Pages 기준)
 - 빌드는 사용하지 않는 코드를 제거하고 번들 크기를 최적화합니다

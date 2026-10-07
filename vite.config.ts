@@ -13,22 +13,22 @@ export default defineConfig(() => {
                 registerType: 'autoUpdate',
                 includeAssets: ['icons/*.png', 'icons/*.svg'],
                 manifest: {
-                    name: '타슈 최적 경로 찾기',
-                    short_name: 'TASHU',
+                    name: '공공자전거 최적 경로 찾기',
+                    short_name: '공공자전거',
                     description: '대전시 공공자전거 타슈의 최적 경로를 찾아주는 PWA 앱',
-                    theme_color: '#006a3c',
+                    theme_color: '#FF9A24',
                     background_color: '#f5f7fa',
                     display: 'standalone',
-                    start_url: '/TASHU-OPTIMAL-ROUTE-FINDER/',
+                    start_url: '/PUBLIC-BIKE-ROUTE-FINDER/',
                     icons: [
                         {
-                            src: '/TASHU-OPTIMAL-ROUTE-FINDER/icons/icon-192x192.png',
+                            src: '/PUBLIC-BIKE-ROUTE-FINDER/icons/icon-192x192.png',
                             sizes: '192x192',
                             type: 'image/png',
                             purpose: 'any maskable',
                         },
                         {
-                            src: '/TASHU-OPTIMAL-ROUTE-FINDER/icons/icon-512x512.png',
+                            src: '/PUBLIC-BIKE-ROUTE-FINDER/icons/icon-512x512.png',
                             sizes: '512x512',
                             type: 'image/png',
                             purpose: 'any maskable',
@@ -51,13 +51,13 @@ export default defineConfig(() => {
                             },
                         },
                         {
-                            urlPattern: /\/data\/stations\.json/i,
+                            urlPattern: /\/data\/(seoul-)?stations\.json/i,
                             handler: 'NetworkFirst',
                             options: {
                                 cacheName: 'stations-cache',
                                 networkTimeoutSeconds: 10,
                                 expiration: {
-                                    maxEntries: 1,
+                                    maxEntries: 2, // 대전·서울 파일
                                     maxAgeSeconds: 60 * 5,
                                 },
                             },
@@ -74,7 +74,7 @@ export default defineConfig(() => {
                 "@": path.resolve(__dirname, "./src"),
             },
         },
-        base: "/TASHU-OPTIMAL-ROUTE-FINDER/",
+        base: "/PUBLIC-BIKE-ROUTE-FINDER/",
         server: {
             host: true,
             port: 5173,

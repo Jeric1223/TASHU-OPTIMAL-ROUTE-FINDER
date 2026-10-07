@@ -1,4 +1,4 @@
-import type { KakaoSearchResult } from "../types/index";
+import type { Coordinates, KakaoSearchResult } from "../types/index";
 import { loadKakaoSdk } from "./kakaoSdkLoader";
 
 /**
@@ -56,4 +56,40 @@ export const searchKakaoLocation = async (query: string): Promise<KakaoSearchRes
         }
         throw new Error("장소 검색 중 알 수 없는 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
     }
+};
+
+const addressCache = new Map<string, Promise<string | null>>();
+
+/**
+ * 좌표를 주소로 바꾼다 (도로명 우선, 없으면 지번). 주소가 없는 정류소(서울 따릉이)용.
+ * 같은 좌표는 한 번만 호출하고, 실패(null)는 캐시하지 않아 다음에 다시 시도한다.
+ */
+export const reverseGeocode = (coords: Coordinates): Promise<string | null> => {
+    const key = `${coords.latitude.toFixed(5)},${coords.longitude.toFixed(5)}`;
+    const cached = addressCache.get(key);
+    if (cached) return cached;
+
+    const request = loadKakaoSdk()
+        .then(
+            (kakao) =>
+                new Promise<string | null>((resolve) => {
+                    new kakao.maps.services.Geocoder().coord2Address(coords.longitude, coords.latitude, (result, status) => {
+                        if (status !== kakao.maps.services.Status.OK || !result[0]) {
+                            resolve(null);
+                            return;
+                        }
+                        resolve(result[0].road_address?.address_name || result[0].address?.address_name || null);
+                    });
+                })
+        )
+        .catch((error) => {
+            console.error('Kakao coord2Address failed:', error);
+            return null;
+        })
+        .then((address) => {
+            if (address === null) addressCache.delete(key);
+            return address;
+        });
+    addressCache.set(key, request);
+    return request;
 };

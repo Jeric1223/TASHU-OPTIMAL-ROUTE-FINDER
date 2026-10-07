@@ -8,9 +8,13 @@
   --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
 
   /* 잠금 팔레트 */
-  --brand: #006A3C;
-  --brand-press: #00542F;
-  --brand-bg: #E8F5EE;
+  /* 도시 테마 — 강조색은 선택된 핀·주 버튼에만 쓴다. 기본값은 타슈(대전). */
+  --brand: #FF9A24;
+  --brand-hover: #F08A10;
+  --on-brand: #14171C;
+  --focus: #14171C;
+  --fill: #EFF1F4;
+  --me: oklch(60% 0.12 190);
   --gray-50: #F7F8FA;
   --gray-100: #EFF1F4;
   --gray-200: #E2E5E9;
@@ -41,6 +45,13 @@
   --z-sheet: 20;
   --z-nav: 30;
   --z-modal: 40;
+}
+
+:root[data-city='seoul'] {
+  --brand: oklch(50% 0.17 255);
+  --brand-hover: oklch(45% 0.17 255);
+  --on-brand: #FFFFFF;
+  --focus: oklch(50% 0.17 255);
 }
 
 html, body {
@@ -227,7 +238,7 @@ html, body {
 
 .panel-input:focus {
   border-color: var(--brand);
-  box-shadow: 0 0 0 3px var(--brand-bg);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--brand) 25%, transparent);
   background: #ffffff;
 }
 

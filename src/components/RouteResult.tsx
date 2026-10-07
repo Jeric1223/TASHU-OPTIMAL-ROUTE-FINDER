@@ -1,11 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import type { OptimalRoute } from '../types/index';
+import type { CityId, OptimalRoute } from '../types/index';
 import { loadKakaoSdk } from '../services/kakaoSdkLoader';
 import { useCountUp } from '../hooks/useCountUp';
 import { addFavorite, isFavorite } from '../services/favoriteService';
+import { getReturnSlots } from '../services/cityService';
 
 interface RouteResultProps {
     route: OptimalRoute;
+    city: CityId;
 }
 
 // WGS84 → WCONGNAMUL 변환 (카카오맵 URL rt 파라미터용)
@@ -37,7 +39,7 @@ const toWcong = async (lng: number, lat: number): Promise<{ x: number; y: number
     }
 };
 
-const RouteResult: React.FC<RouteResultProps> = ({ route }) => {
+const RouteResult: React.FC<RouteResultProps> = ({ route, city }) => {
     const formatDuration = (minutes: number) =>
         minutes < 60 ? `${minutes}분` : `${Math.floor(minutes / 60)}시간 ${minutes % 60}분`;
 
@@ -95,9 +97,11 @@ const RouteResult: React.FC<RouteResultProps> = ({ route }) => {
     useEffect(() => { setSaved(isFavorite(route.startStation.id)); }, [route.startStation.id]);
     const handleSave = () => {
         if (saved) return;
-        if (addFavorite(route.startStation)) setSaved(true);
+        if (addFavorite(route.startStation, undefined, city)) setSaved(true);
     };
     const noBikes = route.startStation.parking_count === 0;
+    // 거치대 총수를 아는 도시(서울)만 도착 정류소의 반납 가능 자리를 보여준다
+    const returnSlots = getReturnSlots(route.endStation, city);
 
     return (
         // 위는 스크롤되는 요약, 아래는 시트 바닥에 고정되는 CTA 바
@@ -112,6 +116,7 @@ const RouteResult: React.FC<RouteResultProps> = ({ route }) => {
                 </h2>
                 <p className="mt-1.5 text-[15px] text-on-surface-variant">
                     총 {route.totalDistance.toFixed(1)}km · 출발 정류소 대여 {route.startStation.parking_count}대
+                    {returnSlots !== null && <> · 반납 약 <span className="tabular-nums">{returnSlots}</span>자리</>}
                 </p>
                 {noBikes && (
                     <p role="status" className="mt-3.5 rounded-2xl bg-[#FBF3DC] px-4 py-3.5 text-sm leading-relaxed text-[#5C4A12]">
@@ -128,9 +133,9 @@ const RouteResult: React.FC<RouteResultProps> = ({ route }) => {
                         return (
                             <li key={idx} className="relative flex gap-4 animate-slide-up" style={{ animationDelay: `${idx * 60 + 120}ms`, animationFillMode: 'backwards' }}>
                                 <div className="flex flex-col items-center flex-shrink-0">
-                                    <div className={`mt-1 w-[14px] h-[14px] rounded-full border-[3px] z-10 ${isWalk ? 'bg-surface border-gray-300' : 'bg-primary border-primary'}`} />
+                                    <div className={`mt-1 w-[14px] h-[14px] rounded-full border-[3px] z-10 ${isWalk ? 'bg-surface border-gray-300' : 'bg-on-surface border-on-surface'}`} />
                                     {!isLast && (
-                                        <div className={`flex-1 my-1 w-0 border-l-2 ${isWalk ? 'border-dashed border-gray-300' : 'border-solid border-primary'}`} />
+                                        <div className={`flex-1 my-1 w-0 border-l-2 ${isWalk ? 'border-dashed border-gray-300' : 'border-solid border-on-surface'}`} />
                                     )}
                                 </div>
                                 <div className={`flex-1 min-w-0 ${isLast ? '' : 'pb-[18px]'}`}>
@@ -146,17 +151,13 @@ const RouteResult: React.FC<RouteResultProps> = ({ route }) => {
                     })}
                 </ol>
 
-                <p className="mt-1 text-sm text-on-surface-variant">
-                    도착 정류소 반납 가능 {route.endStation.parking_count}자리
-                </p>
-
                 <div className="mt-5 grid grid-cols-2 gap-2">
                     <a href={naverUrl} target="_blank" rel="noopener noreferrer"
                         className="press flex items-center justify-center min-h-[48px] rounded-[14px] bg-gray-100 text-on-surface text-sm font-bold">
                         네이버지도
                     </a>
                     <button onClick={handleSave} disabled={saved}
-                        className="press flex items-center justify-center min-h-[48px] rounded-[14px] bg-gray-100 text-on-surface text-sm font-bold disabled:text-primary">
+                        className="press flex items-center justify-center min-h-[48px] rounded-[14px] bg-gray-100 text-on-surface text-sm font-bold disabled:text-on-surface">
                         {saved ? '저장됨' : '경로 저장'}
                     </button>
                 </div>
@@ -166,7 +167,7 @@ const RouteResult: React.FC<RouteResultProps> = ({ route }) => {
             <div className="flex-none px-4 pt-2.5 pb-[calc(var(--nav-h)+28px)] min-[900px]:pb-4 bg-surface shadow-[0_-1px_0_#E4E6E3]">
                 <a href={kakaoWebUrl} target="_blank" rel="noopener noreferrer" onClick={handleKakaoStart}
                     aria-disabled={noBikes}
-                    className={`press flex items-center justify-center min-h-[52px] rounded-[16px] font-headline font-bold ${noBikes ? 'bg-gray-100 text-on-surface-variant' : 'bg-primary text-white'}`}>
+                    className={`press flex items-center justify-center min-h-[52px] rounded-[16px] font-headline font-bold ${noBikes ? 'bg-gray-100 text-on-surface-variant' : 'bg-primary text-on-primary'}`}>
                     카카오맵으로 길찾기 시작
                 </a>
             </div>
